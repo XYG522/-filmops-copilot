@@ -19,7 +19,7 @@
 - [x] Day 2 导入-清洗-切块-索引（60 条 Entry → 52 个 Chunk，引用元数据完整）
 - [x] Day 3 混合检索（向量0.7+BM25 0.3）+ Rerank + 引用链路（召回@20 验收 10/10）
 - [x] Day 4 生成层（周报 / 风险 / 行动项 + 引用后校验 + 置信度三档 + 转人工 + 对抗样例 3/3）
-- [ ] Day 5 Streamlit UI
+- [x] Day 5 Streamlit UI（5 页：导入 / 索引管理 / 检索调试 / 周报生成+人工编辑确认 / 评估；Markdown 导出；反馈 SQLite）
 - [ ] Day 6 评估集与跑分
 - [ ] Day 7 收尾（README 补全 / Demo 视频 / 成本实测）
 
@@ -33,19 +33,22 @@ filmops-copilot/
 │   └── data_readme.md           # 数据说明 + 预埋风险答案底稿
 ├── scripts/
 │   └── make_synthetic_data.py   # 数据生成脚本（幂等，带预埋风险自检）
-├── app/                         # 应用代码（Day 2+）
+├── app/                         # 应用代码（解析/索引/检索/生成/反馈）
+├── app_pages/                   # Streamlit 5 页（st.navigation + st.Page）
+├── streamlit_app.py             # UI 入口（合规脚注 + 页面导航）
 ├── requirements.txt
 └── .env.example
 ```
 
 ## 快速开始
 
-（Day 5 完成 UI 后补全完整流程）
-
 ```bash
 py -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
 .venv\Scripts\python scripts\make_synthetic_data.py
+
+# UI（Day 5）
+.venv\Scripts\python -m streamlit run streamlit_app.py
 ```
 
 CLI 链路（索引 → 检索 → 生成）：
