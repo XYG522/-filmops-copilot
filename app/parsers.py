@@ -61,8 +61,10 @@ def parse_excel(path: Path, doc_type: str, default_dept: str = "") -> list[Entry
             dept = _dept_from_owner(cells[headers.index("负责人")])
 
         date = ""
-        if "计划完成" in headers:
-            date = cells[headers.index("计划完成")]
+        for col in ("审片日期", "计划完成", "实际完成"):  # 首个出现的日期列（缺省依次回退）
+            if col in headers:
+                date = cells[headers.index(col)]
+                break
 
         entries.append(Entry(
             entry_id=f"{path.name}#行{i}",

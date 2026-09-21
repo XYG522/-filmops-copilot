@@ -12,7 +12,7 @@ import pandas as pd
 import streamlit as st
 
 from app import feedback
-from app.generator import generate_report
+from app.generator import REPORT_QUERIES, generate_report
 from app.ui_resources import get_retriever
 
 st.title("④ 周报生成 · 人工编辑确认")
@@ -31,7 +31,7 @@ with st.form("gen_form"):
 
 if go:
     with st.status("生成中…", expanded=True) as status:
-        st.write("9 个查询混合检索 + Rerank…")
+        st.write(f"{len(REPORT_QUERIES)} 个查询混合检索 + Rerank…")
         t0 = time.perf_counter()
         res = generate_report(get_retriever())
         status.update(label=f"完成（{time.perf_counter() - t0:.0f}s）", state="complete")

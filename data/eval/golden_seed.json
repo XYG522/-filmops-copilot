@@ -46,7 +46,32 @@
   },
   {
     "query": "DIT 硬盘的事是什么",
-    "expected_entries": ["05_meeting_notes.txt#议题4"],
+    "expected_entries": ["05_meeting_notes.txt#议题5"],
     "note": "R7 信息不足场景（检索应命中，生成层输出信息不足）"
+  },
+  {
+    "query": "本周计划达成率多少",
+    "expected_entries": ["05_meeting_notes.txt#议题1"],
+    "note": "R9 计划达成对比（上周回顾口径）"
+  },
+  {
+    "query": "有哪些镜头审片结论是重拍",
+    "expected_entries": [
+      "07_review_conclusions.xlsx#行6",
+      "07_review_conclusions.xlsx#行15",
+      "07_review_conclusions.xlsx#行24",
+      "07_review_conclusions.xlsx#行33"
+    ],
+    "note": "R8 修改落实：4 镜重拍待改（E02-023/E05-023/E08-023/E11-023）"
+  },
+  {
+    "query": "第 14 集特效镜头 E14-023 什么时候能交付",
+    "expected_entries": ["06_shot_progress.xlsx#行18", "04_chat_log.txt#第2条"],
+    "note": "R3 依赖冲突（镜头表明细 ↔ 群聊）"
+  },
+  {
+    "query": "本周镜头进度和上周比怎么样",
+    "expected_entries": ["05_meeting_notes.txt#议题1"],
+    "note": "镜头进度对比（上周回顾口径：224→342 镜，43.1%→65.8%）"
   }
 ]

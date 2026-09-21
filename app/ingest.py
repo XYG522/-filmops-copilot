@@ -24,6 +24,8 @@ STANDARD_SOURCES = [
     ("03_promo_materials.xlsx", "excel", "promo", "宣发部"),
     ("04_chat_log.txt", "chat", "", ""),
     ("05_meeting_notes.txt", "meeting", "", ""),
+    ("06_shot_progress.xlsx", "excel", "shot_progress", "后期部"),
+    ("07_review_conclusions.xlsx", "excel", "review", "制片部"),
 ]
 
 

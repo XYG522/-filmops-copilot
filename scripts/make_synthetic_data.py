@@ -41,6 +41,8 @@ PLANTED_RISKS = {
     "R5-合规": "露出不少于 3 次",
     "R6-合规": "保险 9-30 到期",
     "R7-信息不足": "关于 DIT 硬盘",
+    "R8-修改落实": "需演员补拍，档期待确认",
+    "R9-计划达成": "达成率 78.7%",
 }
 
 written_texts = []  # 所有写入数据的文本，供自检
@@ -169,18 +171,118 @@ CHAT_LOG = """【后期×宣发协作群 · 节选】
 
 
 # ---------------------------------------------------------------------------
-# 05 会议纪要粘贴样例（内嵌"信息不足"场景）
+# 05 会议纪要粘贴样例（内嵌"信息不足"场景 + 上周回顾口径）
 # ---------------------------------------------------------------------------
 MEETING_NOTES = """【9-20 制片例会纪要（粘贴导入）】
 会议时间：2026-09-20 10:00
 参会：制片主任 王主任、制片助理 小陈、后期统筹 小周、宣发 阿澜、财务 唐姐
 
-1. 后期部：粗剪 1-4 集按 9-26 交付；第 5-8 集受素材转码影响顺延。
-2. 宣发部：预告片交片时间待与平台确认，细节见协作群聊天记录。
-3. 制片部：演员补拍档期仍在等艺人经纪回复。
-4. 关于 DIT 硬盘
+1. 上周回顾（数据口径）：
+- 镜头进度：截至 9-14 累计完成 224/520 镜（43.1%）；截至 9-20 累计完成 342 镜（65.8%），本周新增完成 118 镜。
+- 计划达成：上周计划完成 140 镜，实际完成 126 镜，达成率 90.0%，差额 14 镜顺延至本周；本周计划 150 镜，截至 9-20 完成 118 镜，达成率 78.7%，差额 32 镜（特效返工 22 镜、素材转码 10 镜）。
+- 风险遗留：上周遗留风险 4 项（特效外包返工进度落后、品牌 A 露出次数不足、拍摄保险续保未办理、器材归还清点）；器材归还清点本周已关闭（S-005 已完成），其余 3 项继续跟踪；本周新增风险：预告片交片时间冲突。
+- 审片销号：本周审片 48 镜（通过 26、返修 18、重拍 4）；返修重拍 22 镜销号进度：待改 6（4 镜重拍等演员补拍档期、2 镜等特效外包返工）、已改 8、复核通过 8；复核通过才算落实。
+2. 后期部：粗剪 1-4 集按 9-26 交付；第 5-8 集受素材转码影响顺延。
+3. 宣发部：预告片交片时间待与平台确认，细节见协作群聊天记录。
+4. 制片部：演员补拍档期仍在等艺人经纪回复。
+5. 关于 DIT 硬盘
    （此处记录不完整，仅存标题）
 """
+
+
+# ---------------------------------------------------------------------------
+# 06 镜头进度表（剪辑审片口径）：第 13-16 集 60 镜明细（特效返工焦点段）
+# ---------------------------------------------------------------------------
+_SHOT_SEQS = ["011", "023", "035", "047", "059", "071", "083", "095",
+              "107", "119", "131", "143", "155", "167", "179"]
+_VFX_SEQS = {"023", "047", "071", "095", "119"}  # 每集 5 个特效镜
+# 进行中的特效镜（R1 延期段）：计划 9-28，实际顺延 10-05
+_VFX_DELAYED = {("13", "023"), ("13", "047"), ("13", "071"), ("14", "023"), ("14", "047"),
+                ("15", "047"), ("15", "071"), ("15", "095"), ("16", "023"), ("16", "047")}
+
+
+def make_shot_progress():
+    headers = ["镜号", "集数", "场次", "镜头类型", "剪辑阶段", "当前状态",
+               "计划完成", "实际完成", "备注"]
+    rows = []
+    for ep in ["13", "14", "15", "16"]:
+        for i, seq in enumerate(_SHOT_SEQS):
+            shot = f"E{ep}-{seq}"
+            vfx = seq in _VFX_SEQS
+            note = ""
+            if shot == "E14-023":  # 预告片高潮段所需镜头（R3 依赖冲突）
+                stage, status, plan, actual = "特效合成", "进行中", "2026-09-24", ""
+                note = "预告片高潮段所需镜头，外包反馈初版 9-25 才能出"
+            elif (ep, seq) in _VFX_DELAYED:  # R1 特效延期段（与 P-005 备注同口径）
+                stage, status, plan, actual = "特效返修", "进行中", "2026-09-28", ""
+                note = "外包方反馈初版提交延迟一周，预计 10-05 交付"
+            elif vfx:
+                stage, status = "定剪", "已完成"
+                plan = f"2026-09-{10 + i:02d}"
+                actual = plan
+            elif (i + int(ep)) % 4 == 0:  # 实拍精剪进行中
+                stage, status = "精剪", "进行中"
+                plan = f"2026-09-{20 + (i % 5):02d}"
+                actual = ""
+            else:
+                stage, status = "定剪", "已完成"
+                plan = f"2026-09-{12 + (i % 7):02d}"
+                actual = plan
+                if (i + int(ep)) % 5 == 0:
+                    note = "已送审片"
+            rows.append([shot, f"第{int(ep)}集", f"{i + 1:02d}", "特效" if vfx else "实拍",
+                         stage, status, plan, actual, note])
+    widths = [12, 8, 8, 8, 10, 10, 12, 12, 40]
+    return write_xlsx("06_shot_progress.xlsx", "镜头进度表", headers, rows, widths)
+
+
+# ---------------------------------------------------------------------------
+# 07 审片结论表（只记结论 + 意见销号制）：本周审片 48 镜
+# ---------------------------------------------------------------------------
+# 每集 3 镜的镜号（13-16 集与镜头进度表对齐：只审已定剪/已交付镜头）
+_REVIEW_SEQS = {
+    "13": ["011", "071", "131"], "14": ["011", "083", "131"],
+    "15": ["035", "095", "143"], "16": ["011", "083", "131"],
+}
+_REVIEW_REPASS = {"1", "3", "4", "6", "7", "9", "10", "12"}   # k=1 → 返修 复核通过
+_REVIEW_REDONE = {"1", "3", "4", "6", "7", "9", "10", "12"}   # k=3 → 返修 已改
+_REVIEW_RESHOT = {"2", "5", "8", "11"}                        # k=2 → 重拍 待改（等补拍档期）
+_REVIEW_VFX_WAIT = {"13", "15"}                               # k=2 → 返修 待改（等特效外包返工）
+
+
+def make_review_conclusions():
+    headers = ["镜号", "集数", "审片日期", "审片人", "结论", "修改状态", "复核日期", "备注"]
+    rows = []
+    for ep in [f"{n}" for n in range(1, 17)]:
+        seqs = _REVIEW_SEQS.get(ep, ["011", "023", "035"])
+        for k, seq in enumerate(seqs, start=1):
+            shot = f"E{ep}-{seq}"
+            review_date = f"2026-09-{15 + (int(ep) - 1) % 5:02d}"
+            reviewer = "王主任" if int(ep) % 3 == 1 else ("郑一鸣" if int(ep) % 3 == 2 else "小周")
+            note, recheck = "", ""
+            if k == 1 and ep in _REVIEW_REPASS:
+                verdict, status = "返修", "复核通过"
+                recheck = _min_date(review_date, 2, "2026-09-20")
+            elif k == 3 and ep in _REVIEW_REDONE:
+                verdict, status = "返修", "已改"
+            elif k == 2 and ep in _REVIEW_RESHOT:
+                verdict, status = "重拍", "待改"
+                note = "需演员补拍，档期待确认"
+            elif k == 2 and ep in _REVIEW_VFX_WAIT:
+                verdict, status = "返修", "待改"
+                note = "等特效外包返工反馈"
+            else:
+                verdict, status = "通过", "—"
+            rows.append([shot, f"第{int(ep)}集", review_date, reviewer, verdict, status, recheck, note])
+    widths = [12, 8, 12, 10, 8, 10, 12, 28]
+    return write_xlsx("07_review_conclusions.xlsx", "审片结论表", headers, rows, widths)
+
+
+def _min_date(date_str: str, plus_days: int, cap: str) -> str:
+    """date + plus_days，不超过 cap（复核日期用，2026-09 内）。"""
+    from datetime import date as _date, timedelta
+    d = _date.fromisoformat(date_str) + timedelta(days=plus_days)
+    return min(d, _date.fromisoformat(cap)).isoformat()
 
 
 def self_check():
@@ -198,12 +300,24 @@ def main():
         make_budget(),
         make_promo_materials(),
         (write_txt("04_chat_log.txt", CHAT_LOG), CHAT_LOG.count("\n[")),
-        (write_txt("05_meeting_notes.txt", MEETING_NOTES), 4),
+        (write_txt("05_meeting_notes.txt", MEETING_NOTES), 5),
+        make_shot_progress(),
+        make_review_conclusions(),
     ]
     print(f"数据目录: {DATA_DIR}")
     for path, count in results:
-        unit = "行任务" if str(path).endswith(".xlsx") else ("条消息" if "chat" in str(path) else "个议题")
-        print(f"  - {path.name}  ({count} {unit})")
+        name = path.name
+        if name == "06_shot_progress.xlsx":
+            unit = "行镜头"
+        elif name == "07_review_conclusions.xlsx":
+            unit = "条结论"
+        elif name.endswith(".xlsx"):
+            unit = "行任务"
+        elif "chat" in name:
+            unit = "条消息"
+        else:
+            unit = "个议题"
+        print(f"  - {name}  ({count} {unit})")
     self_check()
 
 
