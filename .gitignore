@@ -4,5 +4,7 @@ __pycache__/
 .env
 .streamlit/secrets.toml
 data/index/
+data/uploaded/
+data/feedback.db
 outputs/
 .DS_Store

@@ -12,9 +12,7 @@ Day 3 CLI：混合检索 + Rerank 的验收与调试。
 """
 
 import argparse
-import json
 import sys
-import time
 from pathlib import Path
 
 try:  # Windows 终端统一 UTF-8 输出
@@ -24,14 +22,8 @@ except Exception:
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from app.eval_check import run_golden_check  # noqa: E402
 from app.retriever import HybridRetriever  # noqa: E402
-
-GOLDEN_SEED = Path(__file__).resolve().parent.parent / "data" / "eval" / "golden_seed.json"
-
-
-def _entries_of(chunk_id: str, inventory: dict) -> set:
-    meta = inventory[chunk_id]["metadata"]
-    return set(meta["entry_ids"].split("、"))
 
 
 def show_hits(query: str, hits: list[dict]) -> None:
@@ -44,36 +36,17 @@ def show_hits(query: str, hits: list[dict]) -> None:
 
 
 def check_mode() -> None:
-    data = json.loads(GOLDEN_SEED.read_text(encoding="utf-8"))
-    retriever = HybridRetriever()
-    inv = retriever.inventory
-    passed, top5_good = 0, 0
-    print(f"验收集: {len(data)} 条\n")
-    t0 = time.perf_counter()
-    for item in data:
-        query, expected = item["query"], set(item["expected_entries"])
+    res = run_golden_check()
+    print(f"验收集: {res['total']} 条\n")
+    for r in res["results"]:
+        print(f"  [{'✓' if r['ok20'] else '✗'}] Top20{'✓' if r['ok20'] else '✗'} / "
+              f"Top5{'✓' if r['ok5'] else '✗'}  {r['query']}")
+        if not r["ok20"]:
+            print(f"        预期: {r['expected']}")
 
-        cands = retriever.coarse_rank(query)
-        coarse_entries = set()
-        for cid, _ in cands:
-            coarse_entries |= _entries_of(cid, inv)
-        ok20 = bool(coarse_entries & expected)
-
-        top5 = retriever.retrieve(query, cands=cands)
-        top5_entries = set()
-        for h in top5:
-            top5_entries |= _entries_of(h["chunk_id"], inv)
-        ok5 = bool(top5_entries & expected)
-
-        passed += ok20
-        top5_good += ok5
-        print(f"  [{'✓' if ok20 else '✗'}] Top20{'✓' if ok20 else '✗'} / Top5{'✓' if ok5 else '✗'}  "
-              f"{query}")
-        if not ok20:
-            print(f"        预期: {sorted(expected)}")
-
-    print(f"\n召回@20: {passed}/{len(data)}（验收线 ≥9/10）  Top-5 含预期: {top5_good}/{len(data)}")
-    print(f"耗时 {time.perf_counter() - t0:.1f}s")
+    print(f"\n召回@20: {res['recall20']}/{res['total']}（验收线 ≥9/10）  "
+          f"Top-5 含预期: {res['top5_good']}/{res['total']}")
+    print(f"耗时 {res['seconds']}s")
 
 
 def main() -> None:
