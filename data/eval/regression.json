@@ -1,0 +1,22 @@
+[
+  {"id": "R01", "name": "表头含空单元格不崩", "kind": "parser", "note": "坑：表头丢失→字段错乱（解析器容错）"},
+  {"id": "R02", "name": "行号与 Excel 实际行一致", "kind": "parser", "note": "已修 bug：行号错位（location 对齐）"},
+  {"id": "R03", "name": "合并单元格部门列正确", "kind": "parser", "note": "坑：合并单元格行错位"},
+  {"id": "R04", "name": "空白行/空白单元格安全", "kind": "parser", "note": "坑：空值不进 text、不产空 chunk"},
+  {"id": "R05", "name": "规则去重只留首条", "kind": "parser", "note": "坑：同 (文件,位置) 重复导入"},
+  {"id": "R06", "name": "长文本窗口不超 512", "kind": "chunker", "note": "坑：切块截断"},
+  {"id": "R07", "name": "群聊合并不切断单条消息", "kind": "chunker", "note": "坑：切块截断（消息完整性）"},
+  {"id": "R08", "name": "被切文本带 (i/n) 位置标记", "kind": "chunker", "note": "已修 bug：引用漂移（切块后位置可溯）"},
+  {"id": "R09", "name": "表格行独立成块", "kind": "chunker", "note": "口径：行级引用粒度"},
+  {"id": "R10", "name": "context_block 编号与 ref_ids 一一对应", "kind": "citation", "note": "已修 bug：引用漂移（编号错位）"},
+  {"id": "R11", "name": "引用后校验丢弃无效编号", "kind": "citation", "note": "坑：模型编造行号（_valid_refs 兜底）"},
+  {"id": "R12", "name": "索引 chunk 与 inventory 自洽", "kind": "citation", "note": "已修 bug：引用漂移（entry_ids 全存在）"},
+  {"id": "R13", "name": "否定语境豁免不误判", "kind": "guard", "note": "已修 bug：拒绝解释被误判越权"},
+  {"id": "R14", "name": "合法数据字段“已执行”不误判", "kind": "guard", "note": "已修 bug：输出侧规则兜底误伤预算表"},
+  {"id": "R15", "name": "越权表述正常触发", "kind": "guard", "note": "口径：禁用表述必须能命中"},
+  {"id": "R16", "name": "LLM 空输出翻倍预算重试", "kind": "llm_mock", "note": "已修 bug：deepseek-flash 思考吃满预算→正文为空"},
+  {"id": "R17", "name": "manifest 同名注册覆盖", "kind": "ingest", "note": "口径：追加数据源幂等注册"},
+  {"id": "R18", "name": "manifest 不存在时返回空", "kind": "ingest", "note": "口径：首次导入无异常"},
+  {"id": "R19", "name": "gather_report_hits 去重不超上限", "kind": "retriever", "note": "口径：多查询合并去重、截断 MAX"},
+  {"id": "R20", "name": "GBK 文本回退解码", "kind": "ingest", "note": "已修 bug：中文 Excel 另存文本的 GBK 乱码"}
+]

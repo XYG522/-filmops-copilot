@@ -47,6 +47,17 @@ def register_source(file_name: str, kind: str, doc_type: str = "",
     return item
 
 
+def read_text_smart(path: Path) -> str:
+    """读文本文件：UTF-8 优先，失败回退 GBK（中文 Excel 另存 CSV/文本常见编码，坑清单 #表格解析）。"""
+    raw = path.read_bytes()
+    for enc in ("utf-8", "gbk"):
+        try:
+            return raw.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    raise ValueError(f"无法识别编码（utf-8/gbk 均失败）：{path.name}")
+
+
 def parse_source(item: dict, upload_dir: Path = UPLOAD_DIR) -> list:
     """按 manifest 条目解析追加数据源 → Entry 列表。"""
     path = upload_dir / item["file"]
@@ -57,7 +68,7 @@ def parse_source(item: dict, upload_dir: Path = UPLOAD_DIR) -> list:
         return parse_chat(path)
     if kind == "meeting":
         return parse_meeting(path)
-    return parse_text(path.read_text(encoding="utf-8"), path.name, item.get("doc_type", "text"))
+    return parse_text(read_text_smart(path), path.name, item.get("doc_type", "text"))
 
 
 def ingest_all(data_dir: Path = DATA_DIR) -> dict:

@@ -20,7 +20,9 @@ FINAL_K = 5
 
 
 def _minmax(scores: dict[str, float]) -> dict[str, float]:
-    """min-max 归一化；值全相等时归 0（无信息）。"""
+    """min-max 归一化；空输入返回空（无命中信号）；值全相等时归 0（无信息）。"""
+    if not scores:
+        return {}
     vals = list(scores.values())
     lo, hi = min(vals), max(vals)
     if hi == lo:

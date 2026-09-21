@@ -21,7 +21,7 @@
 - [x] Day 4 生成层（周报 / 风险 / 行动项 + 引用后校验 + 置信度三档 + 转人工 + 对抗样例 3/3）
 - [x] Day 5 Streamlit UI（5 页：导入 / 索引管理 / 检索调试 / 周报生成+人工编辑确认 / 评估；Markdown 导出；反馈 SQLite）
 - [x] 周报口径对齐真实流程（对比上周：镜头进度 / 计划达成 / 风险遗留 + 审片销号：待改→已改→复核通过；新增镜头进度表与审片结论表两个数据源）
-- [ ] Day 6 评估集与跑分
+- [x] Day 6 评估集与跑分（120 条：回归 20/20、对抗 20/20、边界 30/30、检索召回@20 95%、风险召回 93%、引用准确 100%、幻觉 0；必备引用覆盖率 74% 未达标，原因见 [docs/eval_report.md](docs/eval_report.md)）
 - [ ] Day 7 收尾（README 补全 / Demo 视频 / 成本实测）
 
 ## 目录结构
@@ -61,6 +61,11 @@ CLI 链路（索引 → 检索 → 生成）：
 .venv\Scripts\python scripts\generate_cli.py --risk "特效外包什么时候交付"
 .venv\Scripts\python scripts\generate_cli.py --actions
 .venv\Scripts\python scripts\generate_cli.py --adversarial   # 对抗样例（注入/越权/批预算）
+
+# 评估（Day 6）
+.venv\Scripts\python scripts\run_eval.py --all      # 全量 120 条跑分（约 20 分钟，结果 docs/eval_report.md）
+.venv\Scripts\python scripts\run_eval.py --golden   # 只跑黄金集（缓存自动跳过已通过条目）
+.venv\Scripts\python scripts\run_eval.py --report   # 仅从缓存重算指标表，不重新跑分
 ```
 
 ## 功能 / 架构 / 评估 / 边界

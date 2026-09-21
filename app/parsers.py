@@ -39,10 +39,27 @@ def _dept_from_owner(owner: str) -> str:
     return ""
 
 
+def _expand_merged(ws) -> None:
+    """合并单元格展开：锚点值填充到整片区域（坑清单 #表格解析：合并单元格行错位）。
+
+    MergedCell 只读，且 values_only 读合并区非锚点恒为 None：
+    解合并 → 填值（读时预处理，不还原合并）。
+    """
+    for rng in list(ws.merged_cells.ranges):
+        anchor = ws.cell(rng.min_row, rng.min_col).value
+        ws.unmerge_cells(str(rng))
+        for row in ws.iter_rows(min_row=rng.min_row, max_row=rng.max_row,
+                                min_col=rng.min_col, max_col=rng.max_col):
+            for cell in row:
+                if cell.value is None:
+                    cell.value = anchor
+
+
 def parse_excel(path: Path, doc_type: str, default_dept: str = "") -> list[Entry]:
     """Excel 表格 → 每行一个 Entry，text 为「列名=值；列名=值」串（保留表头语义）。"""
     wb = load_workbook(path, data_only=True)
     ws = wb.active
+    _expand_merged(ws)
     rows = list(ws.iter_rows(values_only=True))
     headers = [str(h) if h is not None else "" for h in rows[0]]
 
