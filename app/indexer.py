@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
-"""Chroma 索引：建库 / 加载 / 向量检索（Day 2 版；混合检索 + Rerank 在 Day 3）。
+"""Chroma 索引：建库 / 加载 / 向量检索（Day 2 版；混合检索 + Rerank 见 app/retriever.py）。
 
 约定：
   - 每次重建先删旧集合，保证索引与数据版本一致（评估可复现）
   - embedding 模型名写入集合 metadata，防「查询与索引不同模型」事故
   - 持久化目录 data/index/（已在 .gitignore 中）
+  - chunk_inventory.json 是引用溯源的基础台账（Day 4 引用后校验用）
 """
 
+import json
 from pathlib import Path
 
 import chromadb
@@ -40,6 +42,11 @@ def build_index(chunks: list[Chunk], index_dir: Path = INDEX_DIR) -> chromadb.Co
         embeddings=embeddings,
         metadatas=[c.metadata() for c in chunks],
     )
+    # chunk 台账落盘：检索与引用后校验都依赖它
+    inventory = [{"chunk_id": c.chunk_id, "text": c.text, "metadata": c.metadata()} for c in chunks]
+    (index_dir / "chunk_inventory.json").write_text(
+        json.dumps(inventory, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     return collection
 
 
@@ -47,8 +54,13 @@ def load_collection(index_dir: Path = INDEX_DIR) -> chromadb.Collection:
     return _client(index_dir).get_collection(COLLECTION_NAME)
 
 
+def load_inventory(index_dir: Path = INDEX_DIR) -> list[dict]:
+    """chunk 台账：检索语料与引用溯源共用。"""
+    return json.loads((index_dir / "chunk_inventory.json").read_text(encoding="utf-8"))
+
+
 def query_top(collection: chromadb.Collection, query: str, top_k: int = 5) -> list[dict]:
-    """向量检索：返回 [{text, distance, meta}]（distance 越小越相关）。"""
+    """纯向量检索（Day 2 冒烟用；正式检索请用 HybridRetriever）。"""
     q_emb = embed_texts([query])[0]
     res = collection.query(
         query_embeddings=[q_emb],

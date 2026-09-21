@@ -1,0 +1,52 @@
+[
+  {
+    "query": "哪个任务延期了",
+    "expected_entries": ["01_schedule.xlsx#行6", "01_schedule.xlsx#行13"],
+    "note": "R1/R2 延期风险"
+  },
+  {
+    "query": "特效外包什么时候交付",
+    "expected_entries": ["01_schedule.xlsx#行6"],
+    "note": "R1 延期"
+  },
+  {
+    "query": "预告片什么时候交片",
+    "expected_entries": ["01_schedule.xlsx#行13", "04_chat_log.txt#第1条"],
+    "note": "R2/R3"
+  },
+  {
+    "query": "第 14 集特效镜头什么时候能出初版",
+    "expected_entries": ["04_chat_log.txt#第2条", "01_schedule.xlsx#行6"],
+    "note": "R3 依赖冲突"
+  },
+  {
+    "query": "品牌 A 的露出够不够",
+    "expected_entries": ["03_promo_materials.xlsx#行3", "01_schedule.xlsx#行21"],
+    "note": "R5 合规"
+  },
+  {
+    "query": "特效外包会不会超预算",
+    "expected_entries": ["02_budget.xlsx#行5"],
+    "note": "R4 预算超支"
+  },
+  {
+    "query": "拍摄保险什么时候到期",
+    "expected_entries": ["01_schedule.xlsx#行30", "02_budget.xlsx#行9"],
+    "note": "R6 合规（跨文件）"
+  },
+  {
+    "query": "演员补拍档期确认了吗",
+    "expected_entries": ["01_schedule.xlsx#行24"],
+    "note": "行动项：跟进经纪确认"
+  },
+  {
+    "query": "第 5-8 集粗剪为什么受影响",
+    "expected_entries": ["01_schedule.xlsx#行3", "01_schedule.xlsx#行29"],
+    "note": "跨文件一致性"
+  },
+  {
+    "query": "DIT 硬盘的事是什么",
+    "expected_entries": ["05_meeting_notes.txt#议题4"],
+    "note": "R7 信息不足场景（检索应命中，生成层输出信息不足）"
+  }
+]
