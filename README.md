@@ -83,7 +83,8 @@ filmops-copilot/
 │   ├── data_readme.md           # 数据说明 + 预埋风险答案底稿
 │   ├── eval_report.md           # Day 6 评估指标表 + 未达标项说明
 │   ├── cost_latency.md          # Day 7 成本 / 延迟实测表
-│   └── demo_script.md           # 2 分钟 Demo 视频脚本
+│   ├── demo_script.md           # 2 分钟 Demo 视频脚本
+│   └── handoff.md               # 项目交接存档（口径/已知问题/待办/环境坑）
 ├── scripts/
 │   ├── make_synthetic_data.py   # 数据生成脚本（幂等，带预埋风险自检）
 │   └── run_eval.py              # 评估 runner（--all / --golden / --report）
