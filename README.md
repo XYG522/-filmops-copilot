@@ -18,7 +18,7 @@
 - [x] Day 1 脚手架与合成数据（5 个数据文件 + 7 个预埋风险）
 - [x] Day 2 导入-清洗-切块-索引（60 条 Entry → 52 个 Chunk，引用元数据完整）
 - [x] Day 3 混合检索（向量0.7+BM25 0.3）+ Rerank + 引用链路（召回@20 验收 10/10）
-- [ ] Day 4 生成层（周报 / 风险 / 行动项）
+- [x] Day 4 生成层（周报 / 风险 / 行动项 + 引用后校验 + 置信度三档 + 转人工 + 对抗样例 3/3）
 - [ ] Day 5 Streamlit UI
 - [ ] Day 6 评估集与跑分
 - [ ] Day 7 收尾（README 补全 / Demo 视频 / 成本实测）
@@ -46,6 +46,17 @@ filmops-copilot/
 py -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
 .venv\Scripts\python scripts\make_synthetic_data.py
+```
+
+CLI 链路（索引 → 检索 → 生成）：
+
+```bash
+.venv\Scripts\python scripts\build_index.py      # 建索引（Day 2）
+.venv\Scripts\python scripts\search_cli.py "哪个任务延期了"   # 检索 + 引用（Day 3）
+.venv\Scripts\python scripts\generate_cli.py --report        # 周报草稿（Day 4，存 outputs/）
+.venv\Scripts\python scripts\generate_cli.py --risk "特效外包什么时候交付"
+.venv\Scripts\python scripts\generate_cli.py --actions
+.venv\Scripts\python scripts\generate_cli.py --adversarial   # 对抗样例（注入/越权/批预算）
 ```
 
 ## 功能 / 架构 / 评估 / 边界
