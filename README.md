@@ -22,6 +22,7 @@
 - [x] Day 5 Streamlit UI（5 页：导入 / 索引管理 / 检索调试 / 周报生成+人工编辑确认 / 评估；Markdown 导出；反馈 SQLite）
 - [x] 周报口径对齐真实流程（对比上周：镜头进度 / 计划达成 / 风险遗留 + 审片销号：待改→已改→复核通过；新增镜头进度表与审片结论表两个数据源）
 - [x] Day 6 评估集与跑分（120 条全量 50/50：回归 20/20、对抗 20/20、边界 30/30、检索召回@20 94.9%、风险召回 93%、引用准确 100%/97%；两项未达标——必备引用覆盖率 74.4%、幻觉 judge 轨 5.7%（混合口径快照：三层修复已实施并在 11 条新口径缓存上验证编造归零，完整重验待跑），归因与改进见 [docs/eval_report.md](docs/eval_report.md)）
+- [x] G11 空回答修复（重试 3 次/32k + 生成上下文 Top-8→12 + 守卫句边界去「；」；单测 38 条；正式评估重跑待本机内存宽裕后补 2 次确认）
 - [x] Day 7 收尾（README 补全 / 架构图 / 成本延迟实测 / 合规声明 / Demo 视频脚本）
 
 ## 功能
@@ -125,9 +126,10 @@ CLI 链路（索引 → 检索 → 生成）：
 .venv\Scripts\python scripts\run_eval.py --golden   # 只跑黄金集（缓存自动跳过已通过条目）
 .venv\Scripts\python scripts\run_eval.py --missing  # 只补跑无缓存条目（已失败条目沿用缓存，不扰动报告）
 .venv\Scripts\python scripts\run_eval.py --report   # 仅从缓存重算指标表，不重新跑分
+.venv\Scripts\python scripts\run_eval.py --golden --force --item G11  # 只重跑单条（不重生成报告）
 
 # 单测
-.venv\Scripts\python -m pytest tests/                # 36 条确定性单测（秒级，无 API 调用）
+.venv\Scripts\python -m pytest tests/                # 38 条确定性单测（秒级，无 API 调用）
 ```
 
 ## 评估结果（Day 6 快照）
