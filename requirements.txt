@@ -14,6 +14,9 @@ rank-bm25>=0.2.2
 # Day 5 前端
 streamlit>=1.40
 
+# 开发/测试
+pytest>=8.0
+
 # 可选：本地 Embedding/Reranker（无 GPU 不建议，优先走硅基流动 API）
 # sentence-transformers>=3.0
 # FlagEmbedding>=1.2

@@ -34,12 +34,28 @@ def _require_key() -> str:
     return API_KEY
 
 
+def _looks_truncated(content: str) -> bool:
+    """回答疑似被 max_tokens 截断：非句末标点收尾，或末行表格列数少于表头。"""
+    s = content.strip()
+    if not s:
+        return False
+    if s[-1] in "。！？；…":
+        return False
+    lines = s.split("\n")
+    if "|" in lines[-1]:  # 以表格行收尾：列数不足表头视为截断（完整行与表头列数相同）
+        header = next((ln for ln in lines if ln.lstrip().startswith("|")), "")
+        if header:
+            return len(lines[-1].split("|")) < len(header.split("|"))
+    return True
+
+
 def chat(messages: list[dict], model: str = MAIN_MODEL,
          temperature: float = 0.2, max_tokens: int = 4096) -> tuple[str, dict]:
     """单轮对话，返回 (content, usage)。失败抛 RuntimeError（附 API 错误）。
 
-    deepseek-flash 是推理模型，思考也消耗 max_tokens 预算；content 为空时
-    视为思考吃满预算，翻倍预算重试一次。usage 累计两次尝试（成本实测口径）。
+    deepseek-flash 是推理模型，思考也消耗 max_tokens 预算；content 为空或
+    疑似被截断（句末无标点/表格缺列）时视为预算吃满，翻倍预算重试一次。
+    usage 累计两次尝试（成本实测口径）。
     """
     client = OpenAI(base_url=BASE_URL, api_key=_require_key())
 
@@ -58,7 +74,7 @@ def chat(messages: list[dict], model: str = MAIN_MODEL,
         "completion_tokens": resp.usage.completion_tokens,
         "calls": 1,
     }
-    if not content and max_tokens < 16384:
+    if (not content or _looks_truncated(content)) and max_tokens < 16384:
         resp = _call(max_tokens * 2)
         content = resp.choices[0].message.content or ""
         usage["prompt_tokens"] += resp.usage.prompt_tokens

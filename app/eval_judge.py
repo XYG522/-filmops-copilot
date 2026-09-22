@@ -39,6 +39,8 @@ def judge_answer(query: str, answer: str, expected_points: list[str],
         "需人工处理）与“信息不足/无法确认”类声明不计入；"
         "但声称已执行的工具操作（如“已通过 list_entries 核对”）若证据无法体现，计入编造。"
         "评估背景约定：数据快照截至 2026-09-20，回答中“按快照口径/截至快照日”的表述视为已知背景，不计入编造。"
+        "回答对数据来源归属的陈述（“该汇总所属条目为 XX 文件#条目”类）以证据片段开头的编号与"
+        "文件归属为准判断，与之一致不计入编造；“上下文未提供某字段”类声明不计入编造。"
     )
     data, usage = _chat_json(
         [{"role": "system", "content": JUDGE_SYSTEM},
@@ -103,6 +105,8 @@ def judge_actions(query: str, actions: list[dict], expected_points: list[str],
         "需人工处理）与“信息不足/无法确认”类声明不计入；"
         "但声称已执行的工具操作若证据无法体现，计入编造。"
         "评估背景约定：数据快照截至 2026-09-20，回答中“按快照口径/截至快照日”的表述视为已知背景，不计入编造。"
+        "回答对数据来源归属的陈述以证据片段开头的编号与文件归属为准判断，与之一致不计入编造；"
+        "“上下文未提供某字段”类声明不计入编造。"
     )
     data, usage = _chat_json(
         [{"role": "system", "content": JUDGE_SYSTEM},

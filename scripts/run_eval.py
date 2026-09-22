@@ -491,7 +491,7 @@ def run_boundary(force: bool = False) -> list[dict]:
                 fab = 0
                 judge_comment = ""
                 if res["usage"]["calls"] > 0:  # 只对真正进过 LLM 的回答判卷（查编造）
-                    snippets = [f"[{i}] {h['text']}" for i, h in enumerate(hits, 1)]
+                    snippets = [f"[{i}] {h['citation']['ref_id']}｜{h['text']}" for i, h in enumerate(hits, 1)]
                     judged = judge_answer(query, text, [], snippets)
                     fab = judged["fabricated_claims"]
                     judge_comment = judged["comment"]
@@ -540,7 +540,7 @@ def run_golden(force: bool = False, missing_only: bool = False) -> list[dict]:
         # 统一 Top-8：汇总/事实核对类问题需跨文件多证据，与风险识别口径一致（Day 6 修问题后口径）
         final_k = 8
         hits = retriever.retrieve(it["query"], final_k=final_k)
-        snippets = [f"[{i}] {h['text']}" for i, h in enumerate(hits, 1)]
+        snippets = [f"[{i}] {h['citation']['ref_id']}｜{h['text']}" for i, h in enumerate(hits, 1)]
         row = {"id": it["id"], "set": "golden", "category": cat,
                "query": it["query"], "note": it["note"]}
 
@@ -589,7 +589,8 @@ def run_golden(force: bool = False, missing_only: bool = False) -> list[dict]:
                        citations_support=judged["citations_support"],
                        fabricated_claims=judged["fabricated_claims"],
                        judge_comment=judged["comment"],
-                       answer=res["answer"][:300],
+                       answer=res["answer"][:800],
+                       fidelity_dropped=res.get("fidelity_dropped", 0),
                        expect_confidence=it["expect_confidence"],
                        must_found=must_found, must_total=must_total, must_missing=must_missing)
 
@@ -927,17 +928,34 @@ def build_metrics() -> dict:
         "③提示词已加强制编号后，模型对已给证据仍有偶发漏标。",
         "- 附带发现：R15 风险类型路由错误（延期 vs 合规）属另一类缺陷，与引用无关但影响转人工去向。",
     ]
-    if metrics["hallucination_judge"] > 0.05:
+    fab = [i for i in gold if i.get("fabricated_claims", 0) > 0]
+    dropped_total = sum(i.get("fidelity_dropped", 0) for i in gold)
+    if fab:
+        hit = metrics["hallucination_judge"] <= 0.05
         lines += [
             "",
-            "**幻觉率（judge 轨）未达标**（补跑 9 条溯源类条目后暴露）：",
+            f"**幻觉率（judge 轨）{'达标' if hit else '未达标'}**（数据驱动，随缓存自动刷新）：",
             "",
-            f"- 幻觉率 judge 轨 {metrics['hallucination_judge']:.1%}，超 ≤5% 目标：模型对字段级信息做跨块推断——"
-            "T01「所属部门为后期部」（06 表无部门列，由镜号语义推断）、"
-            "T05「日期 2026-09-20」（日期在纪要文件头/议题 1 块内，不在议题 5 块内），"
-            "并都标注了引用编号，但引用块中并无该字段。",
-            "- 自动轨（引用后校验）0 条未拦截的原因：它只校验编号有效性，不校验「陈述内容与证据一致性」。",
+            f"- 幻觉率 judge 轨 {metrics['hallucination_judge']:.1%}"
+            f"（{len(fab)}/{n_judged} 条判卷条目含编造断言），{'≤' if hit else '>'} ≤5% 目标。",
+            f"- 本次含编造断言的条目（judge 评语摘录）：",
+        ]
+        for it in fab:
+            comment = str(it.get("judge_comment", "")).replace("\n", " ")[:120]
+            lines.append(f"  - **{it['id']}**（编造 {it.get('fabricated_claims')} 处）：{comment}")
+        lines += [
+            f"- 自动轨防线实际动作：断言-证据一致性后校验共移除 {dropped_total} 个分句"
+            "（fidelity_dropped，逐条见缓存）；提示词规则 9/10 收紧字段保真与无引用概括；"
+            "chat 截断检测对疑被截断的回答翻倍预算重试。",
+            "- 防线未能清零的原因：LLM 生成非确定，逐条重跑后编造断言会漂移到其他条目；"
+            "judge 对「支持性」的判定有固有偏差（见 §8 局限）。",
             "- 口径说明：本报告幻觉率目标按 ≤5%（更严口径）；`run_eval.py` TARGETS 原配置为 ≤10%。",
+            "",
+        ]
+    elif dropped_total:
+        lines += [
+            "",
+            f"- 断言-证据一致性后校验共移除 {dropped_total} 个分句（fidelity_dropped，逐条见缓存），judge 轨无编造断言。",
             "",
         ]
     lines += [
@@ -949,8 +967,11 @@ def build_metrics() -> dict:
         "| P0 | 生成上下文窗口 Top-8 → Top-12/16 | G11 类排序靠后证据直接进入上下文 | 输入 token +50%~100%，周报仍 <¥0.1/期 |",
         f"| P1 | 查询改写扩展召回：周报 15 查询加部门别名/近义词改写，粗排候选数扩大后再 rerank | 覆盖 {n_retmiss} 处 Top-20 未命中（G12/G19/G20 类） | 检索延迟小幅上升 |",
         "| P1 | 风险类型路由对齐：注册表补合规触发词（送审/批文/平台审核） | 修 R15 真漏检，转人工去向正确 | 需复查 R03/R06 不回归 |",
-        "| P1 | 断言-证据一致性后校验：对每个 [n] 的字段值回查块文本；提示词收紧字段级推断（推断须显式标注） | 修 T01/T05 类幻觉，幻觉率回 0 | 中（需扩展引用后校验） |",
         "| P2 | 人工抽查 judge 判定（引用支持性尺度） | 校准 judge 偏差 | 少量人力 |",
+        "",
+        "已实施（2026-09-22，效果见 §4）：断言-证据一致性后校验（带引用分句字段值/数字回查块文本，"
+        "无引用分句按引用契约移除字段/部门/概括断言）+ 提示词规则 9/10（字段保真、禁止无引用概括）"
+        "+ chat 截断检测重试（疑被截断的回答翻倍预算重生成）。",
         "",
         "## 6. 复现方式",
         "",
@@ -996,6 +1017,8 @@ def build_metrics() -> dict:
         "- judge 偏差：判卷模型对“支持/部分支持”的尺度与人工不一致的可能，报告需人工抽查复核",
         "- 样本内表现：评估集与合成数据同源，不代表真实业务数据上的表现",
         "- 合成数据：本评估全部数据为虚构，仅用于演示流程与指标口径",
+        "- 守卫覆盖面：断言-证据一致性后校验只作用于问答链路（answer_with_citations），"
+        "周报生成（generate_report）尚未接入，周报质量依赖人工编辑确认环节",
         "",
     ]
     (ROOT / "docs" / "eval_report.md").write_text(
