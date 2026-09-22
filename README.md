@@ -21,7 +21,7 @@
 - [x] Day 4 生成层（周报 / 风险 / 行动项 + 引用后校验 + 置信度三档 + 转人工 + 对抗样例 3/3）
 - [x] Day 5 Streamlit UI（5 页：导入 / 索引管理 / 检索调试 / 周报生成+人工编辑确认 / 评估；Markdown 导出；反馈 SQLite）
 - [x] 周报口径对齐真实流程（对比上周：镜头进度 / 计划达成 / 风险遗留 + 审片销号：待改→已改→复核通过；新增镜头进度表与审片结论表两个数据源）
-- [x] Day 6 评估集与跑分（120 条全量 50/50：回归 20/20、对抗 20/20、边界 30/30、检索召回@20 94.9%、风险召回 93%、引用准确 100%；两项未达标——必备引用覆盖率 74.4%、幻觉 judge 轨 5.7%（2 条字段级推断），归因与改进见 [docs/eval_report.md](docs/eval_report.md)）
+- [x] Day 6 评估集与跑分（120 条全量 50/50：回归 20/20、对抗 20/20、边界 30/30、检索召回@20 94.9%、风险召回 93%、引用准确 100%/97%；两项未达标——必备引用覆盖率 74.4%、幻觉 judge 轨 5.7%（混合口径快照：三层修复已实施并在 11 条新口径缓存上验证编造归零，完整重验待跑），归因与改进见 [docs/eval_report.md](docs/eval_report.md)）
 - [x] Day 7 收尾（README 补全 / 架构图 / 成本延迟实测 / 合规声明 / Demo 视频脚本）
 
 ## 功能
@@ -90,8 +90,11 @@ filmops-copilot/
 │   └── run_eval.py              # 评估 runner（--all / --golden / --report）
 ├── app/                         # 应用代码（解析/索引/检索/生成/评估判卷/反馈）
 ├── app_pages/                   # Streamlit 5 页（st.navigation + st.Page）
+├── tests/                       # pytest 单测（守卫/引用/确定性检查，秒级、无 API 调用）
 ├── streamlit_app.py             # UI 入口（合规脚注 + 页面导航）
+├── conftest.py                  # pytest 根配置
 ├── requirements.txt
+├── LICENSE                      # MIT
 └── .env.example
 ```
 
@@ -121,6 +124,9 @@ CLI 链路（索引 → 检索 → 生成）：
 .venv\Scripts\python scripts\run_eval.py --golden   # 只跑黄金集（缓存自动跳过已通过条目）
 .venv\Scripts\python scripts\run_eval.py --missing  # 只补跑无缓存条目（已失败条目沿用缓存，不扰动报告）
 .venv\Scripts\python scripts\run_eval.py --report   # 仅从缓存重算指标表，不重新跑分
+
+# 单测
+.venv\Scripts\python -m pytest tests/                # 36 条确定性单测（秒级，无 API 调用）
 ```
 
 ## 评估结果（Day 6 快照）
@@ -129,9 +135,13 @@ CLI 链路（索引 → 检索 → 生成）：
 | --- | --- | --- | --- |
 | 回归 | 20/20 ✓ | 对抗（硬门槛） | 20/20 ✓ |
 | 边界 | 30/30 ✓ | 检索召回@20 / Top5 | 94.9% / 81% ✓ |
-| 风险召回 | 93% ✓ | 引用准确（自动/judge） | 100% / 100% ✓ |
-| 幻觉（自动/judge） | 0 条 / 5.7% ✗ | 要点覆盖 | 91% ✓ |
+| 风险召回 | 93% ✓ | 引用准确（自动/judge） | 100% / 97% ✓ |
+| 幻觉（自动/judge） | 0 条 / 5.7% ✗ | 要点覆盖 | 87% ✓ |
 | 必备引用覆盖率 | 74.4%（未达标，已归因） | 完整明细 | [docs/eval_report.md](docs/eval_report.md) |
+
+> 幻觉 5.7% 为混合口径快照（修复前后两轮缓存合并计算，口径说明见报告 §6.4/§8）：
+> 断言-证据一致性后校验 + 截断重试 + judge 口径修正已实施，在 11 条新口径缓存上编造归零，
+> 完整 50 条重验留待后续（`--golden --force`）。
 
 ## 边界与设计文档
 
