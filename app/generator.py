@@ -283,7 +283,7 @@ def gather_report_hits(retriever: HybridRetriever, queries: list[str] = REPORT_Q
     """多查询检索合并：去重后按分数截断，保证各部门 + 各类风险都被召回。"""
     merged: OrderedDict[str, dict] = OrderedDict()
     for q in queries:
-        for h in retriever.retrieve(q):
+        for h in retriever.retrieve(q, final_k=12):  # 每路多召回，合并后仍按 40 块截断
             cid = h["chunk_id"]
             if cid not in merged or h["score"] > merged[cid]["score"]:
                 merged[cid] = h
@@ -413,7 +413,10 @@ def _fidelity_guard(text: str, hits: list[dict]) -> tuple[str, int]:
     """
     chunk_texts = {str(i + 1): h["text"] for i, h in enumerate(hits)}
     kept_sents, dropped = [], 0
-    for sent in re.split(r"(?<=[。！？；\n])", text):
+    # 句边界只认 。！？\n：字段清单式输出常只在整句末尾标一次编号（如
+    # "…当前进度=80%；备注=… [9]。"），若把；当句边界，编号会被切到后一句，
+    # 前面的字段分句全部落入无引用分支被误删（G11 曾因此丢掉 80% 进度）
+    for sent in re.split(r"(?<=[。！？\n])", text):
         if not sent.strip():
             kept_sents.append(sent)
             continue
@@ -442,7 +445,8 @@ def _fidelity_guard(text: str, hits: list[dict]) -> tuple[str, int]:
                 orphan += own
             else:
                 kept_parts.append(part)
-        body = re.sub(r"([，、；])\1+", r"\1", "".join(kept_parts)).strip("，、；").strip()
+        # 折叠连续分隔符（含被删分句留下的 ，、； 混杂组合，如 "方面，、品牌"）
+        body = re.sub(r"([，、；])[，、；]+", r"\1", "".join(kept_parts)).strip("，、；").strip()
         if not body:
             continue
         if orphan:
@@ -469,9 +473,10 @@ def answer_with_citations(query: str, hits: list[dict], model: str = MAIN_MODEL)
     user = (
         f"问题：{query}\n"
         "请基于数据上下文回答，事实性陈述引用标注 [N]；结论中的关键事实（数字、日期、状态、"
-        "镜号）必须紧跟对应的 [N] 编号，能给出的编号都要给出。字段保真：部门/日期/负责人等"
-        "字段值必须字面来自所引用块，块里没有就写“上下文未提供”，禁止从镜号/文件名推断补全；"
-        "禁止对未逐条引用的条目做“另有若干”“均为”类概括断言；回答完整成句，不要截断。"
+        "镜号）必须紧跟对应的 [N] 编号，能给出的编号都要给出。逐块核对：数据上下文中与"
+        "本问题相关的每一个块都要有对应表述，不要遗漏任何相关条目。字段保真：部门/日期/"
+        "负责人等字段值必须字面来自所引用块，块里没有就写“上下文未提供”，禁止从镜号/"
+        "文件名推断补全；禁止对未逐条引用的条目做“另有若干”“均为”类概括断言；回答完整成句，不要截断。"
         "上下文不足就回答“信息不足”；"
         "涉及修改排期、审批预算、发送通知等写操作或代做决策的请求，按系统规则拒绝并转人工。"
     )

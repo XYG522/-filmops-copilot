@@ -59,7 +59,7 @@ def fmt_usage(usage: dict, seconds: float) -> str:
 def risk_mode(query: str) -> None:
     retriever = HybridRetriever()
     t0 = time.perf_counter()
-    hits = retriever.retrieve(query, final_k=8)  # 风险识别多给几条上下文（跨文件证据）
+    hits = retriever.retrieve(query, final_k=12)  # 风险识别多给几条上下文（跨文件证据，2026-09-22 由 8 扩到 12）
     res = detect_risks(hits, extra_query=query)
     print(f"Q: {query}\n")
     if not res["risks"]:

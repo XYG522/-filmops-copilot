@@ -54,8 +54,9 @@ def chat(messages: list[dict], model: str = MAIN_MODEL,
     """单轮对话，返回 (content, usage)。失败抛 RuntimeError（附 API 错误）。
 
     deepseek-flash 是推理模型，思考也消耗 max_tokens 预算；content 为空或
-    疑似被截断（句末无标点/表格缺列）时视为预算吃满，翻倍预算重试一次。
-    usage 累计两次尝试（成本实测口径）。
+    疑似被截断（句末无标点/表格缺列）时视为预算吃满，翻倍预算重试，
+    最多 3 次调用、上限 32768 tok（G11 曾翻倍一次仍为空——偶发形态）。
+    usage 累计所有尝试（成本实测口径）。
     """
     client = OpenAI(base_url=BASE_URL, api_key=_require_key())
 
@@ -74,8 +75,10 @@ def chat(messages: list[dict], model: str = MAIN_MODEL,
         "completion_tokens": resp.usage.completion_tokens,
         "calls": 1,
     }
-    if (not content or _looks_truncated(content)) and max_tokens < 16384:
-        resp = _call(max_tokens * 2)
+    while (not content or _looks_truncated(content)) \
+            and max_tokens < 32768 and usage["calls"] < 3:
+        max_tokens *= 2
+        resp = _call(max_tokens)
         content = resp.choices[0].message.content or ""
         usage["prompt_tokens"] += resp.usage.prompt_tokens
         usage["completion_tokens"] += resp.usage.completion_tokens

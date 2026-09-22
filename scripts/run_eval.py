@@ -260,17 +260,17 @@ class _FakeOpenAI:
     last = None
 
     def __init__(self, base_url=None, api_key=None):
-        self.chat = SimpleNamespace(completions=_FakeChat(["", "正文内容"]))
+        self.chat = SimpleNamespace(completions=_FakeChat(["", "", "正文内容。"]))
         _FakeOpenAI.last = self
 
 
-def check_r16(_):  # LLM 空输出翻倍预算重试
+def check_r16(_):  # LLM 空输出翻倍预算重试（最多 3 次调用：G11 曾翻倍一次仍为空）
     import app.llm as llm
     with patch.object(llm, "OpenAI", _FakeOpenAI):
         content, usage = llm.chat([{"role": "user", "content": "hi"}])
     calls = _FakeOpenAI.last.chat.completions.calls
-    ok = (content == "正文内容" and usage["calls"] == 2
-          and calls[0]["max_tokens"] == 4096 and calls[1]["max_tokens"] == 8192)
+    ok = (content == "正文内容。" and usage["calls"] == 3
+          and [c["max_tokens"] for c in calls] == [4096, 8192, 16384])
     return ok, f"content={content!r} calls={usage['calls']} max_tokens={[c['max_tokens'] for c in calls]}"
 
 
@@ -524,8 +524,11 @@ def _covers(cited: list[str], must: list[str]) -> tuple[int, int, list[str]]:
     return len(found), len(must), [m for m in must if m not in found]
 
 
-def run_golden(force: bool = False, missing_only: bool = False) -> list[dict]:
+def run_golden(force: bool = False, missing_only: bool = False,
+               items_filter: list[str] | None = None) -> list[dict]:
     items = load_eval("golden.json")
+    if items_filter:  # 只跑指定条目（如 --item G11），其余缓存不动
+        items = [it for it in items if it["id"] in items_filter]
     retriever = HybridRetriever()
     results = []
     for it in items:
@@ -537,8 +540,9 @@ def run_golden(force: bool = False, missing_only: bool = False) -> list[dict]:
             continue
         t0 = time.perf_counter()
         cat = it["category"]
-        # 统一 Top-8：汇总/事实核对类问题需跨文件多证据，与风险识别口径一致（Day 6 修问题后口径）
-        final_k = 8
+        # 统一 Top-12（原 Top-8，2026-09-22 扩窗口）：汇总/事实核对类问题需跨文件多证据；
+        # G11 类必备引用排序低于 Top-8 进不了上下文，扩到 12 后纳入
+        final_k = 12
         hits = retriever.retrieve(it["query"], final_k=final_k)
         snippets = [f"[{i}] {h['citation']['ref_id']}｜{h['text']}" for i, h in enumerate(hits, 1)]
         row = {"id": it["id"], "set": "golden", "category": cat,
@@ -1071,6 +1075,8 @@ def main() -> None:
     ap.add_argument("--missing", action="store_true",
                     help="只跑无缓存的条目（黄金集补跑；已失败条目沿用缓存）")
     ap.add_argument("--force", action="store_true", help="忽略缓存全部重跑")
+    ap.add_argument("--item", action="append", default=None, metavar="ID",
+                    help="只跑指定条目（可多次，如 --item G11；跳过报告重生成，保护手工补充段落）")
     args = ap.parse_args()
 
     if args.report:
@@ -1089,10 +1095,13 @@ def main() -> None:
         if name == "regression":
             run_regression(force=args.force)
         elif name == "golden":
-            run_golden(force=args.force, missing_only=args.missing)
+            run_golden(force=args.force, missing_only=args.missing,
+                       items_filter=args.item)
         else:
             RUNNERS[name](force=args.force)
         print(f"[{name}] 耗时 {time.perf_counter() - t0:.1f}s")
+    if args.item:
+        return  # 单条重跑只更新缓存，不重生成报告（报告 §3.3/§6.4/§8 为手工补充，避免覆盖）
     m = build_metrics()
     print(f"\n指标汇总：{json.dumps(m, ensure_ascii=False, indent=2)}")
     print(f"报告已写入 docs/eval_report.md 与 outputs/eval_result_{date.today()}.json")

@@ -81,3 +81,22 @@ def test_mixed_field_list():
     assert dropped == 1
     assert "集数=第14集" in out and "计划完成=2026-09-24" in out
     assert "部门" not in out
+
+
+def test_sentence_end_citation_covers_fields_before_semicolon():
+    # G11 场景：字段清单后接 ；备注分句，编号只标在整句末尾——编号须覆盖 ；前的字段分句
+    chunk = ("任务ID=S-007；任务名称=素材 DIT 备份归档；部门=制片部；负责人=DIT-大刘；"
+             "计划开始=2026-09-11；计划完成=2026-09-21；当前进度=80%；状态=进行中；"
+             "备注=第 5-8 集素材转码延迟 2 天")
+    out, dropped = _fidelity_guard(
+        "进行中：S-007 素材 DIT 备份归档，日期=2026-09-21，任务ID=S-007，部门=制片部，"
+        "负责人=DIT-大刘，当前进度=80%，状态=进行中；备注=第 5-8 集素材转码延迟 2 天 [1]。\n",
+        [{"text": chunk}])
+    assert dropped == 0, f"真实字段被误删：{out}"
+    assert "当前进度=80%" in out and "部门=制片部" in out and "DIT-大刘" in out
+
+
+def test_mixed_separator_collapsed():
+    # 被删分句留下的混杂分隔符（，、）须折叠，不残留 "，、"
+    out, dropped = guard("- 风险：4 项，分别为特效返工、品牌露出、保险续保、器材清点 [1]\n")
+    assert "，、" not in out
