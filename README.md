@@ -84,7 +84,8 @@ filmops-copilot/
 │   ├── eval_report.md           # Day 6 评估报告（评估集/指标/Badcase/归因/改进计划/复现方式）
 │   ├── cost_latency.md          # Day 7 成本 / 延迟实测表
 │   ├── demo_script.md           # 2 分钟 Demo 视频脚本
-│   └── handoff.md               # 项目交接存档（口径/已知问题/待办/环境坑）
+│   ├── handoff.md               # 项目交接存档（口径/已知问题/待办/环境坑）
+│   └── project_summary.md       # 项目总结（完成了什么/还缺什么/困难与解决方案，带数据）
 ├── scripts/
 │   ├── make_synthetic_data.py   # 数据生成脚本（幂等，带预埋风险自检）
 │   └── run_eval.py              # 评估 runner（--all / --golden / --report）
