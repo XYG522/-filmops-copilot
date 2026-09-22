@@ -45,7 +45,7 @@ flowchart LR
     C --> D[(Chroma 向量<br/>+ BM25 关键词)]
     Q[用户问题] --> R[混合检索<br/>向量 0.7 + BM25 0.3]
     D --> R
-    R --> E[BGE Reranker<br/>Top-20 → Top-5/8]
+    R --> E[BGE Reranker<br/>Top-20 → Top-5/12]
     E --> G[DeepSeek 生成<br/>周报 / 风险 / 行动项]
     G --> V[引用后校验 + 置信度三档<br/>+ 越权守卫 + 转人工路由]
     V --> H[人工编辑确认]

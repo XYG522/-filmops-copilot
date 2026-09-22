@@ -37,7 +37,7 @@ cd C:\Users\ASUS\02cc\filmops-copilot
   `--missing` 只补跑无缓存条目，已失败条目沿用缓存不扰动报告）
 - 单条重跑：`run_eval.py --golden --force --item G11`（可多次 --item；只写缓存不重生成报告，
   保护 eval_report.md §3.3/§6.4/§8 的手工段落）
-- 单测：`.venv\Scripts\python -m pytest tests/`（36 条，秒级、无 API 调用；单一事实来源
+- 单测：`.venv\Scripts\python -m pytest tests/`（38 条，秒级、无 API 调用；单一事实来源
   `scripts/run_eval.py` 的 REGRESSION_CHECKS/PARSER_CHECKS）
 - 换机器：`pip install -r requirements.txt` → 复制 `.env` → `make_synthetic_data.py` → `build_index.py`
 
@@ -65,7 +65,7 @@ DeepSeek 生成（周报/风险/行动项）→ 引用后校验 + 置信度三�
 - **安全红线**：越权/写操作按句拦截（否定语境豁免）；"已执行"是预算表合法字段**不能禁**；
   禁止声称执行过工具（"已通过 list_entries 核对"是编造）；预算/合规/依赖风险强制转人工
 - **评估条目 ok 口径**：必备引用完整性单列指标（must_cite_coverage），不再计入条目 ok（避免双重计分）
-- **检索 Top-8 上下文**是 Day 6 修问题后的统一口径（汇总类问题跨文件多证据）
+- **检索 Top-12 上下文**是现行统一口径（2026-09-22 由 Top-8 扩窗，b041c5f；汇总类问题跨文件多证据）
 
 ## 5. 已知问题与局限（诚实清单，不掩盖）
 
@@ -128,6 +128,6 @@ DeepSeek 生成（周报/风险/行动项）→ 引用后校验 + 置信度三�
 
 - 评估集：`data/eval/golden.json`(50) / `boundary.json`(30) / `adversarial.json`(20) / `regression.json`(20)
 - 报告：`docs/eval_report.md`（8 段结构：评估集/指标表/Badcase/归因/改进计划/复现方式/成本/局限，由 `run_eval.py --report` 按缓存数据驱动生成；§6.4/§8 的混合口径说明与 §3.3 G11 归因为手工补充，重生成会覆盖，注意保留）· `docs/cost_latency.md`（成本延迟实测）· `docs/demo_script.md`（视频脚本）
-- 单测：`tests/`（36 条，包装 `run_eval.py` 的确定性检查函数，单一事实来源）· `conftest.py` · `LICENSE`（MIT）
+- 单测：`tests/`（38 条，包装 `run_eval.py` 的确定性检查函数，单一事实来源）· `conftest.py` · `LICENSE`（MIT）
 - 数据底稿：`docs/data_readme.md`（预埋风险答案）· `docs/phase9-demo-plan.md`（PRD/排期/坑清单）
 - 评估缓存：`outputs/eval_cache/`（gitignore，逐条 JSON，重跑复用；当前为两轮混合口径，见 §5.8）
