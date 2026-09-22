@@ -21,7 +21,7 @@
 - [x] Day 4 生成层（周报 / 风险 / 行动项 + 引用后校验 + 置信度三档 + 转人工 + 对抗样例 3/3）
 - [x] Day 5 Streamlit UI（5 页：导入 / 索引管理 / 检索调试 / 周报生成+人工编辑确认 / 评估；Markdown 导出；反馈 SQLite）
 - [x] 周报口径对齐真实流程（对比上周：镜头进度 / 计划达成 / 风险遗留 + 审片销号：待改→已改→复核通过；新增镜头进度表与审片结论表两个数据源）
-- [x] Day 6 评估集与跑分（120 条：回归 20/20、对抗 20/20、边界 30/30、检索召回@20 95%、风险召回 93%、引用准确 100%、幻觉 0；必备引用覆盖率 74% 未达标，原因见 [docs/eval_report.md](docs/eval_report.md)）
+- [x] Day 6 评估集与跑分（120 条全量 50/50：回归 20/20、对抗 20/20、边界 30/30、检索召回@20 94.9%、风险召回 93%、引用准确 100%；两项未达标——必备引用覆盖率 74.4%、幻觉 judge 轨 5.7%（2 条字段级推断），归因与改进见 [docs/eval_report.md](docs/eval_report.md)）
 - [x] Day 7 收尾（README 补全 / 架构图 / 成本延迟实测 / 合规声明 / Demo 视频脚本）
 
 ## 功能
@@ -81,7 +81,7 @@ filmops-copilot/
 ├── docs/
 │   ├── phase9-demo-plan.md      # 开发计划（PRD 审查 / 排期 / 坑清单）
 │   ├── data_readme.md           # 数据说明 + 预埋风险答案底稿
-│   ├── eval_report.md           # Day 6 评估指标表 + 未达标项说明
+│   ├── eval_report.md           # Day 6 评估报告（评估集/指标/Badcase/归因/改进计划/复现方式）
 │   ├── cost_latency.md          # Day 7 成本 / 延迟实测表
 │   ├── demo_script.md           # 2 分钟 Demo 视频脚本
 │   └── handoff.md               # 项目交接存档（口径/已知问题/待办/环境坑）
@@ -119,6 +119,7 @@ CLI 链路（索引 → 检索 → 生成）：
 # 评估（Day 6）
 .venv\Scripts\python scripts\run_eval.py --all      # 全量 120 条跑分（约 20 分钟，结果 docs/eval_report.md）
 .venv\Scripts\python scripts\run_eval.py --golden   # 只跑黄金集（缓存自动跳过已通过条目）
+.venv\Scripts\python scripts\run_eval.py --missing  # 只补跑无缓存条目（已失败条目沿用缓存，不扰动报告）
 .venv\Scripts\python scripts\run_eval.py --report   # 仅从缓存重算指标表，不重新跑分
 ```
 
@@ -127,10 +128,10 @@ CLI 链路（索引 → 检索 → 生成）：
 | 指标 | 结果 | 指标 | 结果 |
 | --- | --- | --- | --- |
 | 回归 | 20/20 ✓ | 对抗（硬门槛） | 20/20 ✓ |
-| 边界 | 30/30 ✓ | 检索召回@20 / Top5 | 95% / 81% ✓ |
+| 边界 | 30/30 ✓ | 检索召回@20 / Top5 | 94.9% / 81% ✓ |
 | 风险召回 | 93% ✓ | 引用准确（自动/judge） | 100% / 100% ✓ |
-| 幻觉（自动/judge） | 0 / 0% ✓ | 要点覆盖 | 88% ✓ |
-| 必备引用覆盖率 | 74%（未达标，已归因） | 完整明细 | [docs/eval_report.md](docs/eval_report.md) |
+| 幻觉（自动/judge） | 0 条 / 5.7% ✗ | 要点覆盖 | 91% ✓ |
+| 必备引用覆盖率 | 74.4%（未达标，已归因） | 完整明细 | [docs/eval_report.md](docs/eval_report.md) |
 
 ## 边界与设计文档
 
