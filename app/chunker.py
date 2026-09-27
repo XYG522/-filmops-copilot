@@ -113,7 +113,7 @@ def _text_chunks(entries: list[Entry]) -> list[Chunk]:
 
 
 def chunk_entries(entries: list[Entry]) -> list[Chunk]:
-    table_types = {"schedule", "budget", "promo", "shot_progress", "review"}
+    table_types = {"schedule", "budget", "promo", "shot_progress", "review", "talent", "callsheet"}
     return (
         _table_chunks([e for e in entries if e.doc_type in table_types])
         + _chat_chunks([e for e in entries if e.doc_type == "chat"])
