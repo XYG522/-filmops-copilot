@@ -136,6 +136,27 @@ CLI 链路（索引 → 检索 → 生成）：
 .venv\Scripts\python -m pytest tests/                # 58 条确定性单测（秒级，无 API 调用）
 ```
 
+## 在线部署（Streamlit Community Cloud）
+
+1. 推送到 GitHub 仓库（本项目 `data/index/`、`data/uploaded/`、`data/feedback.db` 已在 .gitignore 中，不随仓库分发）。
+2. 打开 [share.streamlit.io](https://share.streamlit.io) → New app → 选择仓库 → Main file path 填 `streamlit_app.py`。
+3. 在 App Settings → Secrets 面板填入（值来自本地 `.env`，**不要提交到仓库**）：
+
+   ```toml
+   DEEPSEEK_API_KEY = "sk-xxx"
+   DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+   DEEPSEEK_MAIN_MODEL = "deepseek-flash"
+   DEEPSEEK_PRO_MODEL = "deepseek-v4-pro"
+   SILICONFLOW_API_KEY = "sk-xxx"
+   SILICONFLOW_BASE_URL = "https://api.siliconflow.cn/v1"
+   EMBED_MODEL = "BAAI/bge-m3"
+   RERANK_MODEL = "BAAI/bge-reranker-v2-m3"
+   ```
+
+4. Deploy 即可。
+
+云端行为说明：容器磁盘是临时的，冷启动时应用会**自动从 `data/` 的 7 个标准文件重建索引**（约 1 分钟，`streamlit_app.py` 顶部 `_ensure_index`，`st.cache_resource` 保证每容器只建一次）；①导入页上传的文件与反馈审计库同样只存活于容器生命周期内，符合 Demo 定位。应用休眠后首次访问有约 1 分钟唤醒时间。
+
 ## 评估结果（Day 6 快照）
 
 | 指标 | 结果 | 指标 | 结果 |
