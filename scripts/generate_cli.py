@@ -3,7 +3,8 @@
 Day 4 CLI：生成层端到端验收与调试。
 
 用法：
-  python scripts/generate_cli.py --report               # 周报草稿（存 outputs/）
+  python scripts/generate_cli.py --report               # 数据驱动周报草稿（存 outputs/，默认全部数据源）
+  python scripts/generate_cli.py --report --scope uploads   # 仅上传数据（manifest 注册源）
   python scripts/generate_cli.py --risk "哪个任务延期了"    # 单主题风险识别
   python scripts/generate_cli.py --actions              # 行动项提取
   python scripts/generate_cli.py --adversarial          # 对抗集 20 条（注入8/越权7/转人工5，Day 6 硬门槛）
@@ -34,8 +35,9 @@ from app.generator import (  # noqa: E402
     detect_risks,
     extract_actions,
     gather_report_hits,
-    generate_report,
+    generate_report_from_data,
 )
+from app.ingest import load_manifest  # noqa: E402
 from app.retriever import HybridRetriever  # noqa: E402
 
 OUTPUT_DIR = Path(__file__).resolve().parent.parent / "outputs"
@@ -115,9 +117,24 @@ def adversarial_mode() -> None:
     print(f"对抗样例: {passed}/{len(cases)} 通过（Day 6 硬门槛 {len(cases)}/{len(cases)}）")
 
 
-def report_mode() -> None:
+def report_mode(scope: str) -> None:
+    """数据驱动周报：清点 → LLM 规划检索查询/章节 → 检索 → 生成。范围空/检索空 → 退出码 1。"""
+    whitelist = {m["file"] for m in load_manifest()} if scope == "uploads" else None
+    if scope == "uploads" and not whitelist:
+        print("[错误] 仅上传数据范围内没有数据：data/uploaded/manifest.json 为空。"
+              "请先经 UI ①导入页上传数据，或改用 --scope all。")
+        sys.exit(1)
     t0 = time.perf_counter()
-    res = generate_report()
+    res = generate_report_from_data(source_whitelist=whitelist)
+    if res.get("error"):
+        print(f"[错误] {res['error']}")
+        sys.exit(1)
+    plan = res["plan"]
+    print(f"检索计划（来源: {plan['source']}）→ 项目名: {plan['project_name']} | "
+          f"范围: {scope}")
+    print(f"  查询（{len(plan['queries'])} 个）：{' / '.join(plan['queries'])}")
+    print(f"  章节（{len(plan['sections'])} 个）：{' / '.join(s['title'] for s in plan['sections'])}")
+    print()
     OUTPUT_DIR.mkdir(exist_ok=True)
     path = OUTPUT_DIR / f"weekly_report_{date.today():%Y-%m-%d}.md"
     path.write_text(res["markdown"], encoding="utf-8")
@@ -132,14 +149,16 @@ def report_mode() -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="FilmOps 生成层 CLI（Day 4）")
-    ap.add_argument("--report", action="store_true", help="端到端周报草稿")
+    ap.add_argument("--report", action="store_true", help="数据驱动周报草稿（清点→规划→生成）")
+    ap.add_argument("--scope", choices=("uploads", "all"), default="all",
+                    help="周报数据范围：uploads=仅上传数据（manifest 注册源），all=全部数据源（默认）")
     ap.add_argument("--risk", metavar="QUERY", help="单主题风险识别")
     ap.add_argument("--actions", action="store_true", help="行动项提取")
     ap.add_argument("--adversarial", action="store_true", help="对抗集 20 条（注入/越权/转人工）")
     args = ap.parse_args()
 
     if args.report:
-        report_mode()
+        report_mode(args.scope)
     elif args.risk:
         risk_mode(args.risk)
     elif args.actions:

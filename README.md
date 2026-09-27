@@ -24,12 +24,13 @@
 - [x] Day 6 评估集与跑分（120 条全量 50/50：回归 20/20、对抗 20/20、边界 30/30、检索召回@20 94.9%、风险召回 93%、引用准确 100%/97%；两项未达标——必备引用覆盖率 74.4%、幻觉 judge 轨 5.7%（混合口径快照：三层修复已实施并在 11 条新口径缓存上验证编造归零，完整重验待跑），归因与改进见 [docs/eval_report.md](docs/eval_report.md)）
 - [x] G11 空回答修复（重试 3 次/32k + 生成上下文 Top-8→12 + 守卫句边界去「；」；单测 38 条；正式评估重跑待本机内存宽裕后补 2 次确认）
 - [x] Day 7 收尾（README 补全 / 架构图 / 成本延迟实测 / 合规声明 / Demo 视频脚本）
+- [x] 周报生成数据驱动化（2026-09-24）：先清点数据源，LLM 自动制定检索查询（8–15）与章节结构（4–8）再生成；日期由数据确定性计算；UI 默认「仅上传数据」可切「全部数据源」；CLI `--scope`；单测 38→58）
 
 ## 功能
 
 - **多源导入**：Excel 表格 / 群聊记录 / 会议纪要 / 纯文本，自动清洗（合并单元格、GBK 回退、去重）与切块
 - **混合检索 + 引用溯源**：向量 0.7 + BM25 0.3 + BGE Rerank；结果带文件/行号/日期/部门元数据
-- **周报草稿**：镜头进度对比上周、计划达成对比、审片与修改落实（销号制：待改→已改→复核通过）、风险状态流转
+- **周报草稿（数据驱动）**：清点数据源 → LLM 规划检索查询与章节结构 → 按计划检索生成；项目名/章节随上传数据自适应，不再绑定单一项目；UI 默认「仅上传数据」，可切「全部数据源」
 - **风险识别**：延期/依赖/预算/合规四类 + 置信度三档 + 高风险（预算/合规/依赖）强制转人工
 - **行动项提取**：负责人/截止时间自动归位，缺失标"待确认"
 - **安全边界**：越权与写操作拦截、只读不决策、不虚构工具调用
@@ -45,6 +46,8 @@ flowchart LR
     C --> D[(Chroma 向量<br/>+ BM25 关键词)]
     Q[用户问题] --> R[混合检索<br/>向量 0.7 + BM25 0.3]
     D --> R
+    D --> P[索引清点 → LLM 检索规划<br/>周报查询 + 章节]
+    P --> R
     R --> E[BGE Reranker<br/>Top-20 → Top-5/12]
     E --> G[DeepSeek 生成<br/>周报 / 风险 / 行动项]
     G --> V[引用后校验 + 置信度三档<br/>+ 越权守卫 + 转人工路由]
@@ -57,7 +60,7 @@ flowchart LR
 
 | 场景 | 耗时 | 成本 |
 | --- | --- | --- |
-| 周报端到端（正文+风险+行动项，15 检索查询） | 69.7s | ≈ ¥0.05 / 次 |
+| 周报端到端（数据清点 + 检索规划 + 正文/风险/行动项，4 次 LLM 调用） | ~75s | ≈ ¥0.05–0.06 / 次 |
 | 单次问答 | 中位 5.3s | ≈ ¥0.003 / 次 |
 | 正常使用估算 | — | **< ¥0.5 / 月** |
 
@@ -92,7 +95,7 @@ filmops-copilot/
 │   └── run_eval.py              # 评估 runner（--all / --golden / --report）
 ├── app/                         # 应用代码（解析/索引/检索/生成/评估判卷/反馈）
 ├── app_pages/                   # Streamlit 5 页（st.navigation + st.Page）
-├── tests/                       # pytest 单测（守卫/引用/确定性检查，秒级、无 API 调用）
+├── tests/                       # pytest 单测 58 条（守卫/引用/确定性/周报规划，秒级、无 API 调用）
 ├── streamlit_app.py             # UI 入口（合规脚注 + 页面导航）
 ├── conftest.py                  # pytest 根配置
 ├── requirements.txt
@@ -116,7 +119,8 @@ CLI 链路（索引 → 检索 → 生成）：
 ```bash
 .venv\Scripts\python scripts\build_index.py      # 建索引（Day 2）
 .venv\Scripts\python scripts\search_cli.py "哪个任务延期了"   # 检索 + 引用（Day 3）
-.venv\Scripts\python scripts\generate_cli.py --report        # 周报草稿（Day 4，存 outputs/）
+.venv\Scripts\python scripts\generate_cli.py --report        # 数据驱动周报草稿（默认全部数据源，存 outputs/）
+.venv\Scripts\python scripts\generate_cli.py --report --scope uploads   # 仅上传数据（manifest 注册源）
 .venv\Scripts\python scripts\generate_cli.py --risk "特效外包什么时候交付"
 .venv\Scripts\python scripts\generate_cli.py --actions
 .venv\Scripts\python scripts\generate_cli.py --adversarial   # 对抗样例（注入/越权/批预算）
@@ -129,7 +133,7 @@ CLI 链路（索引 → 检索 → 生成）：
 .venv\Scripts\python scripts\run_eval.py --golden --force --item G11  # 只重跑单条（不重生成报告）
 
 # 单测
-.venv\Scripts\python -m pytest tests/                # 38 条确定性单测（秒级，无 API 调用）
+.venv\Scripts\python -m pytest tests/                # 58 条确定性单测（秒级，无 API 调用）
 ```
 
 ## 评估结果（Day 6 快照）

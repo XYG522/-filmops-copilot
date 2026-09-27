@@ -17,6 +17,7 @@
 | Day 7 收尾（README/架构图/成本实测/合规/Demo 脚本） | ✅ | a897fa2 |
 | 修幻觉三层防线 + pytest 单测 36 条 | ✅ | 2a3265d |
 | 修 G11：重试 3 次/32k + 上下文 Top-12 + 守卫句边界去「；」 | ✅ | b041c5f |
+| 周报生成数据驱动化（清点→规划→章节按数据源制定；范围默认仅上传） | ✅ | 2026-09-24（未提交） |
 
 Day 6 最终成绩（`docs/eval_report.md`，黄金集 50/50 完整口径）：回归 20/20、对抗 20/20（硬门槛）、
 边界 30/30、检索召回@20 94.9% / Top5 81%、风险召回 14/15=93%、引用准确 100%/97%、要点覆盖 87%。
@@ -32,13 +33,15 @@ cd C:\Users\ASUS\02cc\filmops-copilot
 ```
 
 - `.env` 已配置（勿提交）、索引已建（`data/index/`，gitignore）、最新周报在 `outputs/weekly_report_*.md`
-- CLI：`search_cli.py`（检索）、`generate_cli.py --report/--risk/--actions/--adversarial`（生成）、
+- CLI：`search_cli.py`（检索）、`generate_cli.py --report [--scope uploads|all] --risk --actions --adversarial`
+  （生成；`--report` 走数据驱动周报，`--scope` 默认 all、uploads=仅 manifest 注册源；范围空/检索空退出码 1）、
   `run_eval.py --all/--golden/--missing/--report`（评估，带逐条缓存，重跑自动跳过已过条目；
   `--missing` 只补跑无缓存条目，已失败条目沿用缓存不扰动报告）
 - 单条重跑：`run_eval.py --golden --force --item G11`（可多次 --item；只写缓存不重生成报告，
   保护 eval_report.md §3.3/§6.4/§8 的手工段落）
-- 单测：`.venv\Scripts\python -m pytest tests/`（38 条，秒级、无 API 调用；单一事实来源
-  `scripts/run_eval.py` 的 REGRESSION_CHECKS/PARSER_CHECKS）
+- 单测：`.venv\Scripts\python -m pytest tests/`（58 条，秒级、无 API 调用；单一事实来源
+  `scripts/run_eval.py` 的 REGRESSION_CHECKS/PARSER_CHECKS；本机低内存下合并跑 tests/ 可能
+  segfault 139，按文件分开跑即可）
 - 换机器：`pip install -r requirements.txt` → 复制 `.env` → `make_synthetic_data.py` → `build_index.py`
 
 ## 3. 架构速览
@@ -50,7 +53,10 @@ DeepSeek 生成（周报/风险/行动项）→ 引用后校验 + 置信度三�
 
 关键文件职责：
 - `app/ingest.py` 导入清洗 · `app/parsers.py` 3 类解析器 · `app/retriever.py` 混合检索+Rerank
-- `app/generator.py` 生成层（系统提示词/引用校验/置信度/守卫/周报 15 查询 MAX 40 块）
+- `app/generator.py` 生成层（系统提示词/引用校验/置信度/守卫/周报 15 查询 MAX 40 块；
+  数据驱动周报 `generate_report_from_data`：清点 → `plan_report` 规划查询/章节 → 检索 → 生成；
+  旧 `generate_report` 保留但不再被调用；`make_system_prompt(project_name, snapshot_date)` 参数化，
+  默认渲染逐字节等于历史 SYSTEM_PROMPT——改模板必须同步 tests/test_report_planner.py 的冻结文本）
 - `app/llm.py` DeepSeek 客户端（空输出翻倍预算重试）· `app/eval_judge.py` V4-Pro 判卷
 - `scripts/run_eval.py` 评估 runner · `app_pages/` 5 页 UI · `app/feedback.py` SQLite 审计
 - `data/eval/*.json` 120 条评估集 · `data/eval/golden_seed.json` 开发期种子（自测 query 当场追加）
@@ -66,6 +72,15 @@ DeepSeek 生成（周报/风险/行动项）→ 引用后校验 + 置信度三�
   禁止声称执行过工具（"已通过 list_entries 核对"是编造）；预算/合规/依赖风险强制转人工
 - **评估条目 ok 口径**：必备引用完整性单列指标（must_cite_coverage），不再计入条目 ok（避免双重计分）
 - **检索 Top-12 上下文**是现行统一口径（2026-09-22 由 Top-8 扩窗，b041c5f；汇总类问题跨文件多证据）
+- **数据驱动周报口径（2026-09-24）**：周报 = 先清点数据源（_inventory_desc）→ LLM 规划检索查询(8–15)
+  与章节(4–8)（plan_report，PLAN_SYSTEM_PROMPT）→ 按计划检索生成。日期（标题/快照）由
+  `_inventory_dates` 按块元数据确定性计算，**LLM 不输出日期**。规划失败（JSON 重试耗尽/API 异常）
+  走确定性 FALLBACK_QUERIES/FALLBACK_SECTIONS，永不抛异常。风险/行动项/草稿用动态渲染的系统提示词，
+  10 条硬性规则不变
+- **周报数据范围**：UI 默认「仅上传数据」（manifest 注册源），可切「全部数据源」；CLI `--scope` 默认 all
+  （新机器无上传时 CLI 仍可用）。白名单按 `metadata.source_file` 精确匹配，过滤插在粗排后、rerank 前
+  （rerank 后过滤会让域外块挤占 top_n 饿死域内证据）；`gather_report_hits` 只在 whitelist 非 None 时
+  转发 kwarg（R19 假 retriever 签名兼容，勿"简化"成无条件转发）
 
 ## 5. 已知问题与局限（诚实清单，不掩盖）
 
@@ -97,6 +112,12 @@ DeepSeek 生成（周报/风险/行动项）→ 引用后校验 + 置信度三�
     前误删所致，修复后原文对比调试确认三要点字段全部保留）；守卫修复后的评估重跑被本机
     内存压力回收，待再跑 2 次确认稳定 1.0。③对全部问答条目生效，G03/G09/G10 类覆盖回退
     可能一并受益
+11. **数据驱动周报的已知取舍（2026-09-24）**：①白名单按 source_file 精确匹配——上传与标准源
+    同名的文件会把标准数据纳入「仅上传数据」范围（Demo 接受，产品化应按 manifest 注册来源过滤）
+    ②周报正文不接 _fidelity_guard（与旧路径一致，靠引用后校验 + 人工编辑兜底）
+    ③快照=范围内数据最新日期（含未来计划日，如补拍 9-27），与演示快照 9-20 口径并存
+    ④plan_report 失败路径不计 LLM 用量（_chat_json 失败时 usage 已丢，Demo 接受）
+    ⑤规划器输出经 _clean_plan 清洗（去 #/换行、限长、截断），但 LLM 规划的查询质量未纳入评估集
 
 ## 6. 待办（按优先级）
 
@@ -113,7 +134,8 @@ DeepSeek 生成（周报/风险/行动项）→ 引用后校验 + 置信度三�
 - [ ] 可选：把 `data/eval/golden_seed.json` 的开发期自测 query 正式化（附预期答案）
 - [x] 已办：断言-证据一致性后校验 + 提示词规则 9/10 + 截断重试 + judge 口径修正（2a3265d）、
       pytest 单测 36 条、LICENSE（MIT）、day1-day7 里程碑标签、G11 三层修复 + `--item`
-      单条重跑标志 + 守卫单测 38 条（b041c5f）
+      单条重跑标志 + 守卫单测 38 条（b041c5f）、周报数据驱动化（清点→规划→检索→生成 +
+      `--scope` + UI 范围切换 + 单测 58 条，2026-09-24 未提交）
 
 ## 7. 环境坑（Windows 特供）
 

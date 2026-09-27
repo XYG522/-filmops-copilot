@@ -68,8 +68,14 @@ class HybridRetriever:
 
     # ---- 精排 + 引用 ----
     def retrieve(self, query: str, final_k: int = FINAL_K,
-                 cands: list[tuple[str, float]] | None = None) -> list[dict]:
+                 cands: list[tuple[str, float]] | None = None,
+                 source_whitelist: set[str] | None = None) -> list[dict]:
         cands = cands if cands is not None else self.coarse_rank(query)
+        # 数据范围过滤：插在粗排之后、rerank 之前——若在 rerank 后过滤，域外块会挤占
+        # top_n 名额，饿死域内证据（周报「仅上传数据」范围依赖此位置）
+        if source_whitelist is not None:
+            cands = [c for c in cands
+                     if self.inventory[c[0]]["metadata"]["source_file"] in source_whitelist]
         if len(cands) <= final_k:
             top = cands
         else:
