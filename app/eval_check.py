@@ -2,7 +2,7 @@
 """黄金集种子验收（Day 3 口径）：召回@20 命中 + Top-5 含预期。
 
 Day 3 CLI（search_cli --check）与 Day 5 评估页共用；Day 6 扩展为 120 条全量评估脚本。
-验收口径（docs/phase9-demo-plan.md Day 3）：
+验收口径（Day 3）：
   检索召回率@20：粗排 Top-20 命中目标 chunk ≥ 9/10
   Top-5 为 Rerank 后质量观察（正式重排准确率指标 Day 6 评估脚本算）。
 """

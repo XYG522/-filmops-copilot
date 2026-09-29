@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """反馈回流 / 审计日志（SQLite）：查询、生成、人工修改、采纳状态、导入、导出。
 
-MVP 口径（docs/phase9-demo-plan.md §1 #10）：
+MVP 口径（§1 #10）：
   同时充当评估数据源和审计日志；Day 6 评估集建设从这里取真实交互样本。
 库文件 data/feedback.db（已在 .gitignore，不入库）。
 """

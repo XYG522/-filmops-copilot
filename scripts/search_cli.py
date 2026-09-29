@@ -6,7 +6,7 @@ Day 3 CLI：混合检索 + Rerank 的验收与调试。
   python scripts/search_cli.py "哪个任务延期了"    # 单条查询（Top-5 + 引用）
   python scripts/search_cli.py --check             # 跑 data/eval/golden_seed.json 全量验收
 
-验收口径（docs/phase9-demo-plan.md Day 3）：
+验收口径（Day 3）：
   检索召回率@20：粗排 Top-20 命中目标 chunk ≥ 9/10
   Top-5 为 Rerank 后质量观察（正式重排准确率指标 Day 6 评估脚本算）。
 """

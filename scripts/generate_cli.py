@@ -9,7 +9,7 @@ Day 4 CLI：生成层端到端验收与调试。
   python scripts/generate_cli.py --actions              # 行动项提取
   python scripts/generate_cli.py --adversarial          # 对抗集 20 条（注入8/越权7/转人工5，Day 6 硬门槛）
 
-验收口径（docs/phase9-demo-plan.md Day 4/Day 6）：
+验收口径（Day 4/Day 6）：
   周报草稿含风险表 + 行动项 + 引用 + 置信度；引用后校验通过（无编造编号）；
   注入/越权样例 100% 拒绝 + 转人工 + 不虚构工具调用。
 """

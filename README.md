@@ -13,7 +13,7 @@
 - 核心决策者：制片主任（高风险条目人工确认）
 - 演示项目：《雾港灯塔》16 集悬疑网剧（纯虚构）
 
-## 当前进度（按 docs/phase9-demo-plan.md 排期）
+## 当前进度
 
 - [x] Day 1 脚手架与合成数据（7 个数据文件 + 9 个预埋风险）
 - [x] Day 2 导入-清洗-切块-索引（169 条 Entry → 161 个 Chunk，引用元数据完整）
@@ -21,7 +21,7 @@
 - [x] Day 4 生成层（周报 / 风险 / 行动项 + 引用后校验 + 置信度三档 + 转人工 + 对抗样例 3/3）
 - [x] Day 5 Streamlit UI（5 页：导入 / 索引管理 / 检索调试 / 周报生成+人工编辑确认 / 评估；Markdown 导出；反馈 SQLite）
 - [x] 周报口径对齐真实流程（对比上周：镜头进度 / 计划达成 / 风险遗留 + 审片销号：待改→已改→复核通过；新增镜头进度表与审片结论表两个数据源）
-- [x] Day 6 评估集与跑分（120 条全量 50/50：回归 20/20、对抗 20/20、边界 30/30、检索召回@20 94.9%、风险召回 93%、引用准确 100%/97%；两项未达标——必备引用覆盖率 74.4%、幻觉 judge 轨 5.7%（混合口径快照：三层修复已实施并在 11 条新口径缓存上验证编造归零，完整重验待跑），归因与改进见 [docs/eval_report.md](docs/eval_report.md)）
+- [x] Day 6 评估集与跑分（120 条全量 50/50：回归 20/20、对抗 20/20、边界 30/30、检索召回@20 94.9%、风险召回 93%、引用准确 100%/97%；两项未达标——必备引用覆盖率 74.4%、幻觉 judge 轨 5.7%（混合口径快照：三层修复已实施并在 11 条新口径缓存上验证编造归零，完整重验待跑），归因与改进见运行 `scripts/run_eval.py --report` 生成的评估报告）
 - [x] G11 空回答修复（重试 3 次/32k + 生成上下文 Top-8→12 + 守卫句边界去「；」；单测 38 条；正式评估重跑待本机内存宽裕后补 2 次确认）
 - [x] Day 7 收尾（README 补全 / 架构图 / 成本延迟实测 / 合规声明 / Demo 视频脚本）
 - [x] 周报生成数据驱动化（2026-09-24）：先清点数据源，LLM 自动制定检索查询（8–15）与章节结构（4–8）再生成；日期由数据确定性计算；UI 默认「仅上传数据」可切「全部数据源」；CLI `--scope`；单测 38→58）
@@ -35,7 +35,7 @@
 - **行动项提取**：负责人/截止时间自动归位，缺失标"待确认"
 - **安全边界**：越权与写操作拦截、只读不决策、不虚构工具调用
 - **人工闭环**：编辑确认 → 导出 Markdown → 编辑/采纳/忽略全部落 SQLite 审计日志
-- **质量评估**：120 条评估集（黄金 50 / 边界 30 / 对抗 20 / 回归 20），指标表见 [docs/eval_report.md](docs/eval_report.md)
+- **质量评估**：120 条评估集（黄金 50 / 边界 30 / 对抗 20 / 回归 20），指标表见下方「评估结果」节（明细由 `scripts/run_eval.py --report` 生成）
 
 ## 架构
 
@@ -64,7 +64,7 @@ flowchart LR
 | 单次问答 | 中位 5.3s | ≈ ¥0.003 / 次 |
 | 正常使用估算 | — | **< ¥0.5 / 月** |
 
-实测口径与全量评估成本见 [docs/cost_latency.md](docs/cost_latency.md)。
+实测口径见上表；全量评估成本由 `scripts/run_eval.py --report` 在报告中核算。
 
 ## 合规声明
 
@@ -72,26 +72,20 @@ flowchart LR
 - 输出仅供人工参考，**不构成自动决策**；预算审批、法律判断、自动分发、改排期等一律拒绝并转人工
 - 密钥不入库：`.env` 被 `.gitignore` 排除，模板见 `.env.example`
 
-## 2 分钟 Demo 视频脚本
-
-录制脚本（时间轴 / 解说词 / 拍摄要点）见 [docs/demo_script.md](docs/demo_script.md)。
-
 ## 目录结构
 
 ```
 filmops-copilot/
-├── data/                        # 合成数据（make_synthetic_data.py 生成，可提交 git）
+├── data/                        # 合成数据（预生成，随仓库分发）
 │   └── eval/                    # 评估集 120 条（黄金 50 / 边界 30 / 对抗 20 / 回归 20）
 ├── docs/
-│   ├── phase9-demo-plan.md      # 开发计划（PRD 审查 / 排期 / 坑清单）
 │   ├── data_readme.md           # 数据说明 + 预埋风险答案底稿
-│   ├── eval_report.md           # Day 6 评估报告（评估集/指标/Badcase/归因/改进计划/复现方式）
-│   ├── cost_latency.md          # Day 7 成本 / 延迟实测表
-│   ├── demo_script.md           # 2 分钟 Demo 视频脚本
-│   ├── handoff.md               # 项目交接存档（口径/已知问题/待办/环境坑）
 │   └── project_summary.md       # 项目总结（完成了什么/还缺什么/困难与解决方案，带数据）
 ├── scripts/
-│   ├── make_synthetic_data.py   # 数据生成脚本（幂等，带预埋风险自检）
+│   ├── build_index.py           # 建索引 CLI
+│   ├── search_cli.py            # 检索 + 引用 CLI
+│   ├── generate_cli.py          # 周报草稿 / 风险 / 行动项 CLI
+│   ├── industry_tables.py       # 行业标准表格解析（被 generate_cli / search_cli 复用）
 │   └── run_eval.py              # 评估 runner（--all / --golden / --report）
 ├── app/                         # 应用代码（解析/索引/检索/生成/评估判卷/反馈）
 ├── app_pages/                   # Streamlit 5 页（st.navigation + st.Page）
@@ -108,7 +102,7 @@ filmops-copilot/
 ```bash
 py -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
-.venv\Scripts\python scripts\make_synthetic_data.py
+# 合成数据已随仓库分发，无需生成步骤
 
 # UI（Day 5）
 .venv\Scripts\python -m streamlit run streamlit_app.py
@@ -126,7 +120,7 @@ CLI 链路（索引 → 检索 → 生成）：
 .venv\Scripts\python scripts\generate_cli.py --adversarial   # 对抗样例（注入/越权/批预算）
 
 # 评估（Day 6）
-.venv\Scripts\python scripts\run_eval.py --all      # 全量 120 条跑分（约 20 分钟，结果 docs/eval_report.md）
+.venv\Scripts\python scripts\run_eval.py --all      # 全量 120 条跑分（约 20 分钟，结果 outputs/eval_report.md）
 .venv\Scripts\python scripts\run_eval.py --golden   # 只跑黄金集（缓存自动跳过已通过条目）
 .venv\Scripts\python scripts\run_eval.py --missing  # 只补跑无缓存条目（已失败条目沿用缓存，不扰动报告）
 .venv\Scripts\python scripts\run_eval.py --report   # 仅从缓存重算指标表，不重新跑分
@@ -165,7 +159,7 @@ CLI 链路（索引 → 检索 → 生成）：
 | 边界 | 30/30 ✓ | 检索召回@20 / Top5 | 94.9% / 81% ✓ |
 | 风险召回 | 93% ✓ | 引用准确（自动/judge） | 100% / 97% ✓ |
 | 幻觉（自动/judge） | 0 条 / 5.7% ✗ | 要点覆盖 | 87% ✓ |
-| 必备引用覆盖率 | 74.4%（未达标，已归因） | 完整明细 | [docs/eval_report.md](docs/eval_report.md) |
+| 必备引用覆盖率 | 74.4%（未达标，已归因） | 完整明细 | `scripts/run_eval.py --report` |
 
 > 幻觉 5.7% 为混合口径快照（修复前后两轮缓存合并计算，口径说明见报告 §6.4/§8）：
 > 断言-证据一致性后校验 + 截断重试 + judge 口径修正已实施，在 11 条新口径缓存上编造归零，
@@ -174,4 +168,3 @@ CLI 链路（索引 → 检索 → 生成）：
 ## 边界与设计文档
 
 - 核心边界：不做全自动决策、预算审批、法律判断、自动分发、自动改排期、跨系统双向同步
-- PRD 审查、坑清单、评估口径：见 [docs/phase9-demo-plan.md](docs/phase9-demo-plan.md)

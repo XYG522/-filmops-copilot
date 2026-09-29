@@ -9,14 +9,14 @@
   python scripts/run_eval.py --golden          # 黄金集 50 条生成 + judge 判卷
   python scripts/run_eval.py --missing         # 只补跑无缓存的黄金集条目（已失败条目沿用缓存，不扰动报告）
   python scripts/run_eval.py --all             # 全量（每个集合跑完自动刷新报告）
-  python scripts/run_eval.py --report          # 仅根据缓存结果刷新 docs/eval_report.md
+  python scripts/run_eval.py --report          # 仅根据缓存结果刷新 outputs/eval_report.md
 
 设计：
   - 结果缓存到 outputs/eval_cache/{集合}/{id}.json；重跑时跳过已通过条目（--force 忽略缓存），
     支撑"跑分→修问题→再跑"的循环
   - judge 为 deepseek-v4-pro 判 deepseek-flash（模型错开，减少自我偏好）；
     报告注明 judge 偏差，结论写"样本内表现"
-  - 指标口径见 docs/phase9-demo-plan.md §5.4
+  - 指标口径见 TARGETS 常量（§5.4 口径，实测后可修订并注明原因）
 """
 
 import argparse
@@ -64,7 +64,7 @@ EVAL_DIR = DATA_DIR / "eval"
 OUTPUTS = ROOT / "outputs"
 CACHE_DIR = OUTPUTS / "eval_cache"
 
-# 指标目标（docs/phase9-demo-plan.md §5.4，实测后可修订并注明原因）
+# 指标目标（评估口径，实测后可修订并注明原因）
 TARGETS = {
     "retrieval_recall20": 0.90,
     "retrieval_top5": 0.80,
@@ -636,7 +636,7 @@ def _sum_usage(items: list[dict]) -> dict:
 
 
 def build_metrics() -> dict:
-    """从缓存汇总全量指标 → outputs/eval_result_DATE.json + docs/eval_report.md。"""
+    """从缓存汇总全量指标 → outputs/eval_result_DATE.json + outputs/eval_report.md。"""
     sets = {}
     usage_total = _sum_usage([])
     for name in ("regression", "retrieval", "adversarial", "boundary", "golden"):
@@ -707,7 +707,7 @@ def build_metrics() -> dict:
     path = OUTPUTS / f"eval_result_{date.today()}.json"
     path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    # ---- docs/eval_report.md ----
+    # ---- outputs/eval_report.md ----
     # 逐指标的达标判定（计数型与比率型分开处理）
     hit_check = {
         "adversarial_passed": lambda m: m["adversarial_passed"] >= m["adversarial_total"],
@@ -1008,7 +1008,7 @@ def build_metrics() -> dict:
         "## 7. 成本与延迟（样本内）",
         "",
         f"- LLM 调用 {usage_total['calls']} 次 | 输入 {usage_total['prompt_tokens']} tok | "
-        f"输出 {usage_total['completion_tokens']} tok（单价核算见 docs/cost_latency.md）",
+        f"输出 {usage_total['completion_tokens']} tok（单价核算见 README 成本与延迟一节）",
         "",
         "## 8. 局限与口径说明",
         "",
@@ -1025,7 +1025,7 @@ def build_metrics() -> dict:
         "周报生成（generate_report）尚未接入，周报质量依赖人工编辑确认环节",
         "",
     ]
-    (ROOT / "docs" / "eval_report.md").write_text(
+    (ROOT / "outputs" / "eval_report.md").write_text(
         "\n".join(lines), encoding="utf-8")
     return metrics
 

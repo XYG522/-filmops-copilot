@@ -2,7 +2,7 @@
 """Day 3 检索：混合检索（向量 0.7 + BM25 0.3）→ BGE Reranker → Top-K，带引用构造。
 
 PRD 口径：粗排 Top-20 → Rerank → Top-5 送 LLM（本模块只到 Top-K 检索，LLM 在 Day 4）。
-BM25 用 jieba 分词（中文必需，见 docs/phase9-demo-plan.md 坑清单）。
+BM25 用 jieba 分词（中文必需，见坑清单）。
 """
 
 from pathlib import Path

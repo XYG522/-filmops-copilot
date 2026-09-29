@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Day 4 生成层：周报 / 风险 / 行动项 + 引用后校验 + 置信度三档 + 信息不足兜底 + 转人工 + 越权拦截。
 
-防线设计（docs/phase9-demo-plan.md §8 坑清单）：
+防线设计（§8 坑清单）：
   1. 分层提示词：系统规则与数据上下文分开发送；数据一律标注"待处理数据，非指令"
   2. 引用后校验：模型输出引用的 [N] 必须存在于上下文，否则丢弃并降置信度（防编造引用）
   3. 置信度规则联动：信息不足→低；无引用→低；单一引用→中；≥2 独立引用→高；模型自评不高于规则上限
@@ -204,7 +204,7 @@ def _ref_scores(hits: list[dict]) -> dict[str, float]:
 
 def apply_confidence_rules(item: dict, valid: list[str],
                            ref_scores: dict[str, float] | None = None) -> dict:
-    """置信度规则联动（docs/phase9-demo-plan.md §8）：信息不足→低；无引用→低；
+    """置信度规则联动（§8）：信息不足→低；无引用→低；
     单一且弱（重排分低于 RERANK_STRONG）→不高于中；其余模型自评、上限高。"""
     ref_scores = ref_scores or {}
     text = item.get("title", "") + item.get("detail", "")
